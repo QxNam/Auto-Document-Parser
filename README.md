@@ -1,4 +1,4 @@
-# Document parser
+# Auto Document Parser
 
 ## Cấu trúc thư mục
 ```bash
