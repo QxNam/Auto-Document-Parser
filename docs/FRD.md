@@ -1,0 +1,1 @@
+# TÀI LIỆU YÊU CẦU CHỨC NĂNG (Functional Requirements Document - FRD)
