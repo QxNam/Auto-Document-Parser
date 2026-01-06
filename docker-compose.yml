@@ -1,5 +1,12 @@
 version: "3.8"
 services:
+  api:
+
+  kafka:
+
+  worker:
+
+  web-ui:
 
 networks:
 volumes:
