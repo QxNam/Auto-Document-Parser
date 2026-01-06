@@ -1,5 +1,4 @@
-# TÀI LIỆU YÊU CẦU CHỨC NĂNG (Functional Requirements Document - FRD)
-## FUNCTIONAL REQUIREMENTS DOCUMENT (FRD)
+# TÀI LIỆU YÊU CẦU CHỨC NĂNG (FUNCTIONAL REQUIREMENTS DOCUMENT - FRD)
 ## 1. Thông tin tài liệu 
 | Field | Description|
 |------|------------|
@@ -9,24 +8,14 @@
 | Author | Thảo |
 | Date | 2026-01-06 |
 | Status | Draft |
+
 ## 2. Mục đích
 Tài liệu FRD này mô tả các yêu cầu chức năng chi tiết của hệ thống Auto Document Parser trong ngữ cảnh nghiệp vụ ngân hàng, nhằm chuyển hóa các yêu cầu nghiệp vụ trong BRD thành các chức năng hệ thống có thể triển khai kỹ thuật.
+
 ## 3. Phạm vi
-### 3.1 Phạm vi bao gồm
-
-- Tiếp nhận hồ sơ ngân hàng dạng số
-- Tiền xử lý tài liệu
-- OCR trích xuất văn bản
-- Phân loại tài liệu
-- Trích xuất dữ liệu theo schema ngân hàng
-- Kiểm tra và xác thực dữ liệu
-- Xuất dữ liệu có cấu trúc
-
-### 3.2 Phạm vi không bao gồm
-
-- Quyết định nghiệp vụ (approval, scoring)
-- Xử lý ngoại lệ thủ công
-- Tích hợp Core Banking (giai đoạn hiện tại)
+- Tiếp nhận hồ sơ số.
+- Phân loại và tríc xuất dữ liệu.
+- Xuất dữ liệu có cấu trúc (markdown).
 
 ## 4. Các bên liên quan 
 
@@ -37,9 +26,11 @@ Tài liệu FRD này mô tả các yêu cầu chức năng chi tiết của hệ
 | Backend Developer | Triển khai pipeline         |
 | QA Engineer       | Kiểm thử chức năng          |
 | End User          | Upload và sử dụng kết quả   |
+| AI Engineer       | Tìm hiểu và áp dụng mô hình OCR      |
+| DevOps Engineer   | Quản lý hạ tầng và triển khai |
+| Data Engineer     | Quản lý dữ liệu đầu vào/đầu ra |
 
 ## 5. Giả thuyết và ràng buộc
-
 ### Giả thuyết
 
 - Tài liệu đầu vào tuân theo mẫu ngân hàng ban hành
@@ -47,8 +38,8 @@ Tài liệu FRD này mô tả các yêu cầu chức năng chi tiết của hệ
 
 ### Ràng buộc 
 
-- Kích thước file tối đa: 20MB
-- Định dạng hỗ trợ: PDF, JPG, PNG
+- Kích thước file tối đa: 10MB
+- Định dạng hỗ trợ: PDF, DOC/DOCX, XLS/XLSX, PPTX/PPT, JPG, PNG, ...
 - Ngôn ngữ: Tiếng Việt, Tiếng Anh
 - Pipeline xử lý bất đồng bộ
 
@@ -56,37 +47,48 @@ Tài liệu FRD này mô tả các yêu cầu chức năng chi tiết của hệ
 
 Hệ thống xử lý tài liệu theo pipeline sau:
 
-1. Tải tài liệu lên
-2. Tiền xử lý
-3. Nhận dang ký tự quang học 
-4. Phân loại tài liệu
-5. Trích xuất dữ liệu  
+1. Tải tài liệu qua API vào hàng đợi (Kafka)
+2. Xử lý hàng đợi
+3. Nhận file và lưu cache
+4. Phân loại file
+5. Trích xuất dữ liệu
 6. Kiểm tra và xác thực dữ liệu
-7. Xuất dữ liệu
+7. Xuất dữ liệu đã xử lý
 
 ## 7. Yêu cầu chức năng 
 
-### FR-01: Tải tài liệu lên
+### FR-01: Tải tài liệu qua API vào hàng đợi (Kafka)
 
 **Description:**
-Hệ thống cho phép người dùng upload hồ sơ ngân hàng để xử lý tự động.
+Hệ thống cho phép người dùng upload file qua API.
 
 **Input:**
+Endpoint: `/api/v1/file`
+- Method: POST
+- Headers: API Key
+- Body: 
+    * file upload
+    * metadata (optional)
+- Response:
 
-- File PDF / JPG / PNG
+| Status Code | Description             | Example Response Body           |
+|-------------|-------------------------|---------------------------------
+|200 - OK|Upload accepted to queue|{ "message": "Document upload accepted"} |
+|400 - Bad Request| Response contains error details|{ "error": "abc" } |
+|401 - Unauthorized| Missing or invalid API key|{ "error": "Invalid API key" } |
+|429 - Too Many Requests| Rate limit exceeded|{ "error": "Rate limit exceeded", "limit": 100, "remaining": 0, "reset": 169..." } |
+|500 - Internal Server Error| Unexpected server error during upload to S3 or queue dispatch|{ "error": "Upload failed"} |
 
 **Process:**
-
 - Kiểm tra định dạng file
 - Kiểm tra kích thước file
 - Lưu file vào storage
+- Đưa file vào hàng đợi xử lý (Kafka)
 
 **Output:**
-
-- Document ID
 - Upload status
 
-### FR-02: Tiền xử lý tài liệu
+### FR-02: Xử lý hàng đợi
 
 **Description:**
 Hệ thống thực hiện tiền xử lý nhằm cải thiện chất lượng tài liệu trước OCR.
