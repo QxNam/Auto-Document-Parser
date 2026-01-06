@@ -1,8 +1,8 @@
 import asyncio
-import logging
+from adp.configs.logger import get_logger
 from typing import Any
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class ObserverManager:
     """

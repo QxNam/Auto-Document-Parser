@@ -1,9 +1,9 @@
-import logging
+from adp.configs.logger import get_logger
 import os
 import time
 from adp.services.parser.parser_registry import ParserRegistry
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class Parser:
     """
