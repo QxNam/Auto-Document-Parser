@@ -3,7 +3,7 @@ from loguru import logger
 LOGGER_NAME_DEFAULT = "dpe_logger".upper()
 FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} |{file}:{line} | {message}"
 logger.add(
-    "logs/all_logs.log",
+    "./logs/all_logs.log",
     level="DEBUG",
     format=FILE_FORMAT,
     rotation="50 MB",
@@ -14,7 +14,7 @@ logger.add(
 )
 
 logger.add(
-    "logs/errors.log",
+    "./logs/errors.log",
     level="ERROR",
     format=FILE_FORMAT,
     rotation="50 MB",
