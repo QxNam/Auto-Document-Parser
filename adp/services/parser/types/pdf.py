@@ -17,5 +17,6 @@ class PDFParser(Parser):
         """
         Parse a PDF (.pdf) file.
         """
-        # code here
+        # is_scan -> text_layer_process | ocr_process -> return markdown_text
         pass
+

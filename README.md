@@ -37,4 +37,21 @@ Hệ thống Auto Document Parser (ADP) được thiết kế để tự động
 ├── README.md
 ├── requirements.txt
 └── tests                       # thư mục kiểm thử
+
+## Authentication
+Endpoints under the API require an API key via the `X-API-KEY` header.
+Configure the expected key by creating a `.env` file at the project root with:
+
+```env
+SECRET_API_KEY=your-secret-key-here
+```
+
+Example request:
+
+```bash
+curl -s http://localhost:8000/documents/ \
+	-H "X-API-KEY: your-secret-key-here"
+```
+
+If the header is missing or the value does not match `SECRET_API_KEY`, the API responds with `403 Forbidden` and `"Could not validate credentials: Invalid API Key"`.
 ```

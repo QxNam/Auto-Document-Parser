@@ -222,3 +222,4 @@ venv*
 # --- IGNORE ---
 
 local*
+.ruff_cache

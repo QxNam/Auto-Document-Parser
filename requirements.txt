@@ -9,3 +9,7 @@ boto3==1.42.23
 botocore==1.42.23
 pytest==9.0.2
 moto==5.1.19
+psycopg2-binary==2.9.11
+sqlalchemy==2.0.45
+kafka-python-ng==2.2.3
+

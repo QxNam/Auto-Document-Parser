@@ -9,6 +9,14 @@ class Settings(BaseSettings):
     AWS_DEFAULT_REGION: Optional[str] = None
     S3_BUCKET_NAME: Optional[str] = None
 
+    POSTGRES_HOST: Optional[str] = None
+    POSTGRES_PORT: Optional[int] = 5432
+    POSTGRES_DB: Optional[str] = None
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    SECRET_API_KEY: Optional[str] = None
+    
+
     # Pydantic configuration to load environment variables from a .env file
     model_config = SettingsConfigDict(
         env_file=".env", 
