@@ -10,3 +10,4 @@ botocore==1.42.23
 pytest==9.0.2
 moto==5.1.19
 gradio
+docling
