@@ -223,3 +223,6 @@ venv*
 
 local*
 .ruff_cache
+
+data/
+*.ipynb

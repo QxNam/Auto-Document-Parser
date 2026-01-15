@@ -5,7 +5,7 @@ from kafka.errors import KafkaError
 
 def test_kafka_producer():
     # Cấu hình các tham số
-    bootstrap_servers = ["127.0.0.1:19092"] # 'kafka:9092'
+    bootstrap_servers = ["kafka:9092"]
     topic_name = 'test-topic'
     
     print(f"--- Đang khởi tạo Producer kết nối tới {bootstrap_servers} ---")

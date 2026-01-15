@@ -9,5 +9,6 @@ class DocumentCreateRequest(BaseModel):
     metadata_info: Optional[dict[str, Any]] = Field(None, alias="metadata")
 
 class DocumentUpdateStatusRequest(BaseModel):
+    document_id: str
     status: str = Field(..., pattern="^(pending|processing|completed|failed)$")
     
