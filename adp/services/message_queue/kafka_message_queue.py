@@ -2,9 +2,10 @@ import json
 import asyncio
 from typing import Any, Callable, Dict, Optional
 from kafka import KafkaProducer, KafkaConsumer
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+
 from adp.configs.settings import settings
 from adp.services.message_queue.base_message_queue import BaseMessageQueueService
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 from adp.configs.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,24 +33,48 @@ class KafkaService(BaseMessageQueueService):
         self._initialized = True
         logger.info(f"KafkaService initialized with servers: {self.bootstrap_servers}")
 
+    @classmethod
+    def get_instance(cls):
+        """Get instance of KafkaService Singleton."""
+        if cls._instance is None:
+            cls()
+        return cls._instance
+
+    @classmethod
+    def close(cls):
+        """Close Kafka connections."""
+        if cls._instance:
+            cls._instance.close()
+            cls._instance = None
+            logger.info("--- Đã đóng Kafka Producer ---")
+    
     # --- Producer Helpers (Lazy Loading) ---
 
     def _get_sync_producer(self) -> KafkaProducer:
+        """Get or create synchronous Kafka producer."""
         if self._sync_producer is None:
             logger.debug("Creating Sync Kafka Producer...")
             self._sync_producer = KafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                retries=5
+                acks='all',
+                retries=5,
+                max_in_flight_requests_per_connection=1,
+                request_timeout_ms=30000
             )
         return self._sync_producer
 
     async def _get_async_producer(self) -> AIOKafkaProducer:
+        """Get or create asynchronous Kafka producer."""
         if self._async_producer is None:
             logger.debug("Creating Async Kafka Producer...")
             self._async_producer = AIOKafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
-                value_serializer=lambda v: json.dumps(v).encode('utf-8')
+                value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                acks='all',
+                retries=5,
+                max_in_flight_requests_per_connection=1,
+                request_timeout_ms=30000
             )
             await self._async_producer.start()
         return self._async_producer
@@ -57,6 +82,7 @@ class KafkaService(BaseMessageQueueService):
     # --- Implement Abstract Methods ---
 
     def publish_message_sync(self, topic: str, message: Dict[str, Any]) -> bool:
+        """Publish message synchronously to Kafka topic."""
         try:
             topic = topic or KAFKA_TOPIC_UPLOADS
             producer = self._get_sync_producer()
@@ -70,6 +96,7 @@ class KafkaService(BaseMessageQueueService):
             return False
 
     async def publish_message_async(self, topic: str, message: Dict[str, Any]) -> bool:
+        """Publish message asynchronously to Kafka topic."""
         try:
             producer = await self._get_async_producer()
             await producer.send_and_wait(topic, value=message)
@@ -80,6 +107,7 @@ class KafkaService(BaseMessageQueueService):
             return False
 
     def start_consuming_sync(self, topic: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
+        """Start synchronous Kafka consumer for a topic."""
         logger.info(f"--- Starting Sync Consumer for topic: {topic} ---")
         consumer = KafkaConsumer(
             topic,
@@ -99,6 +127,7 @@ class KafkaService(BaseMessageQueueService):
             logger.info(f"--- Sync Consumer closed for topic: {topic} ---")
 
     async def start_consuming_async(self, topic: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
+        """Start asynchronous Kafka consumer for a topic."""
         logger.info(f"--- Starting Async Consumer for topic: {topic} ---")
         consumer = AIOKafkaConsumer(
             topic,
@@ -121,6 +150,7 @@ class KafkaService(BaseMessageQueueService):
             logger.info(f"--- Async Consumer stopped for topic: {topic} ---")
 
     async def wait_connection_closed(self):
+        """Wait for Kafka connections to close."""
         logger.info("Closing Kafka connections...")
         if self._sync_producer:
             self._sync_producer.close()
