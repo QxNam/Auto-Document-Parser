@@ -57,10 +57,10 @@ class KafkaService(BaseMessageQueueService):
             self._sync_producer = KafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                acks='all',
                 retries=5,
+                acks='all',
                 max_in_flight_requests_per_connection=1,
-                request_timeout_ms=30000
+                request_timeout_ms=10000
             )
         return self._sync_producer
 
@@ -71,10 +71,8 @@ class KafkaService(BaseMessageQueueService):
             self._async_producer = AIOKafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                acks='all',
-                retries=5,
-                max_in_flight_requests_per_connection=1,
-                request_timeout_ms=30000
+                request_timeout_ms=10000, 
+                retry_backoff_ms=100
             )
             await self._async_producer.start()
         return self._async_producer

@@ -1,9 +1,6 @@
 import io
 import time
-import uuid
 import json
-
-from io import BytesIO
 from sqlalchemy.orm import Session
 
 from adp.services.storage.s3 import s3_service
@@ -76,7 +73,9 @@ class FileService:
                 "file_size": file_size, 
                 "filename": filename
             }
-            await kafka_service.publish_message_async(topic=KAFKA_TOPIC_UPLOADS, message=message)
+            status_push = await kafka_service.publish_message_async(topic=KAFKA_TOPIC_UPLOADS, message=message)
+            if not status_push:
+                raise RuntimeError("Failed to publish message to Kafka.")
             logger.info(f"[Step-04] Message published to Kafka topic {KAFKA_TOPIC_UPLOADS} for document ID {doc.id}.")
 
             return message
@@ -87,6 +86,12 @@ class FileService:
 
     async def parse(self, file_content: bytes):
         pass
+
+    async def test_producer(self, n_message:int=10, message:json={}):
+        for i in n_message:
+            time_current = int(time.time())
+            message = message.update({"time": time_current})
+            await kafka_service.publish_message_async(topic=KAFKA_TOPIC_UPLOADS, message=message)
 
     def _check_file_size(self, file_content: bytes):
         """

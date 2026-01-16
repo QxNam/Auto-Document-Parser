@@ -8,7 +8,7 @@ from adp.configs.database import get_db
 from adp.services.storage.models.document import DocumentModel
 from adp.api.requests.document import DocumentCreateRequest, DocumentUpdateStatusRequest
 from adp.api.responses.document import DocumentResponse
-from adp.api.security.auth import validate_api_key
+from adp.api.security.api_key import validate_api_key
 from adp.api.middleware.rate_limit import limiter
 
 router = APIRouter(
