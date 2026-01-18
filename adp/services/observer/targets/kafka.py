@@ -1,5 +1,6 @@
 from adp.services.observer.base_observer import BaseObserver
 
+
 class QueueTarget(BaseObserver):
     """Target save to S3 and send message to Queue."""
 

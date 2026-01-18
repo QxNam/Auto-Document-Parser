@@ -1,8 +1,9 @@
 import asyncio
+
 from adp.configs.logger import get_logger
-from typing import Any
 
 logger = get_logger(__name__)
+
 
 class ObserverManager:
     """
@@ -30,11 +31,13 @@ class ObserverManager:
 
         Each observer is logged individually upon successful initialization.
         """
-        
+
         self.observers = {}
         # code here
 
-    async def send(self,):
+    async def send(
+        self,
+    ):
         """
         Push a message asynchronously to all observer targets of a specific source.
         """
@@ -44,7 +47,7 @@ class ObserverManager:
         # gather all push tasks
         tasks = [t.push(...) for t in targets if t]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # handle results and log errors
         for result in results:
             if isinstance(result, Exception):

@@ -15,9 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Auto Document Parser API!"}
+
 
 @app.get("/health")
 async def health_check():

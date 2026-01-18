@@ -1,4 +1,3 @@
-from adp.services.observer.targets.api import HttpTarget
 
 
 def create_observer() -> None:
