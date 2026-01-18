@@ -1,5 +1,3 @@
-
-
 def create_observer() -> None:
     """
     Factory function to create observer instances based on configuration.
