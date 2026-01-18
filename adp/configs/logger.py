@@ -1,29 +1,30 @@
+import os
+import sys
 from loguru import logger
 
-LOGGER_NAME_DEFAULT = "dpe_logger".upper()
-FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} |{file}:{line} | {message}"
+os.makedirs("./logs", exist_ok=True)
+
+LOGGER_NAME_DEFAULT = "ADP"
+FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[layer]} | {name}:{line} | {message}"
+
+
 logger.add(
-    "./logs/all_logs.log",
-    level="DEBUG",
-    format=FILE_FORMAT,
+    "./logs/all.log",
+    level="INFO",
     rotation="50 MB",
-    retention="30 days",
     compression="zip",
-    enqueue=True,
-    encoding="utf-8",
+    format=FILE_FORMAT,
+    enqueue=True
 )
 
+# File handler cho lỗi
 logger.add(
     "./logs/errors.log",
     level="ERROR",
-    format=FILE_FORMAT,
     rotation="50 MB",
-    retention="30 days",
-    compression="zip",
-    enqueue=True,
-    encoding="utf-8",
+    format=FILE_FORMAT,
+    enqueue=True
 )
 
-
-def get_logger(name: str = LOGGER_NAME_DEFAULT):
-    return logger.bind(name=name)
+def get_logger(layer: str, name: str = "ADP"):
+    return logger.bind(layer=layer, name=name)

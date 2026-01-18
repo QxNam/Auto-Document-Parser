@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="DyM1fkJTr_RxFJDnNemv" name="HLD">
-        <mxGraphModel dx="1631" dy="546" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="751" dy="250" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -168,7 +168,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="jsO9g27w0UC1Ea7zg9QZ-44" value="table: file" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="jsO9g27w0UC1Ea7zg9QZ-38" vertex="1" connectable="0">
+                <mxCell id="jsO9g27w0UC1Ea7zg9QZ-44" value="table: document" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="jsO9g27w0UC1Ea7zg9QZ-38" vertex="1" connectable="0">
                     <mxGeometry x="-0.6705" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
@@ -256,7 +256,7 @@
                 <mxCell id="A9B4zW9U8CffOZMDBEBt-22" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="A9B4zW9U8CffOZMDBEBt-15" target="A9B4zW9U8CffOZMDBEBt-18" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="3" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="A9B4zW9U8CffOZMDBEBt-15" target="2">
+                <mxCell id="3" value="" style="edgeStyle=none;html=1;" parent="1" source="A9B4zW9U8CffOZMDBEBt-15" target="2" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="A9B4zW9U8CffOZMDBEBt-15" value="ImageParser" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
@@ -320,7 +320,7 @@
                 <mxCell id="F6ZN6HfYcfji7FWcsYH2-11" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://simplelocalize.io/blog/github-app/github-actions-for-localization.jpg;" parent="1" vertex="1">
                     <mxGeometry x="767.86" y="1010" width="194.28" height="130" as="geometry"/>
                 </mxCell>
-                <mxCell id="2" value="tesserocr" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                <mxCell id="2" value="tesserocr" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="1150" y="429.06" width="100" height="40.94" as="geometry"/>
                 </mxCell>
             </root>

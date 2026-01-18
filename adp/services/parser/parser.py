@@ -1,9 +1,7 @@
-from adp.configs.logger import get_logger
 import os
-import time
 from adp.services.parser.parser_registry import ParserRegistry
-
-logger = get_logger(__name__)
+from adp.configs.logger import get_logger
+logger = get_logger(layer="WORKER", name=__name__)
 
 class Parser:
     """

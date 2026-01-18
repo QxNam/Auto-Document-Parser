@@ -8,10 +8,10 @@ from adp.configs.settings import settings
 from adp.services.message_queue.base_message_queue import BaseMessageQueueService
 from adp.configs.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(layer="KAFKA", name=__name__)
 
 KAFKA_BOOTSTRAP_SERVERS = settings.KAFKA_BOOTSTRAP_SERVERS
-KAFKA_TOPIC_UPLOADS = settings.KAFKA_TOPIC_UPLOADS
+KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 KAFKA_CONSUMER_GROUP_ID = settings.KAFKA_CONSUMER_GROUP_ID
 
 class KafkaService(BaseMessageQueueService):
@@ -46,7 +46,7 @@ class KafkaService(BaseMessageQueueService):
         if cls._instance:
             cls._instance.close()
             cls._instance = None
-            logger.info("--- Đã đóng Kafka Producer ---")
+            logger.info("--- Closed Kafka Producer ---")
     
     # --- Producer Helpers (Lazy Loading) ---
 
@@ -82,7 +82,7 @@ class KafkaService(BaseMessageQueueService):
     def publish_message_sync(self, topic: str, message: Dict[str, Any]) -> bool:
         """Publish message synchronously to Kafka topic."""
         try:
-            topic = topic or KAFKA_TOPIC_UPLOADS
+            topic = topic or KAFKA_TOPIC_NAME
             producer = self._get_sync_producer()
             future = producer.send(topic, value=message)
             record_metadata = future.get(timeout=10)
@@ -104,12 +104,14 @@ class KafkaService(BaseMessageQueueService):
             logger.error(f"❌ Async Publish Failed to topic {topic}: {str(e)}", exc_info=True)
             return False
 
-    def start_consuming_sync(self, topic: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
+    def start_consuming_sync(self, topic: str, group_id: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
         """Start synchronous Kafka consumer for a topic."""
         logger.info(f"--- Starting Sync Consumer for topic: {topic} ---")
+        group_id = group_id or KAFKA_CONSUMER_GROUP_ID
         consumer = KafkaConsumer(
             topic,
             bootstrap_servers=self.bootstrap_servers,
+            group_id=group_id,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
             auto_offset_reset='earliest',
             enable_auto_commit=True
@@ -124,14 +126,17 @@ class KafkaService(BaseMessageQueueService):
             consumer.close()
             logger.info(f"--- Sync Consumer closed for topic: {topic} ---")
 
-    async def start_consuming_async(self, topic: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
+    async def start_consuming_async(self, topic: str, group_id: str, callback: Callable[[Dict[str, Any]], Any]) -> None:
         """Start asynchronous Kafka consumer for a topic."""
         logger.info(f"--- Starting Async Consumer for topic: {topic} ---")
+        group_id = group_id or KAFKA_CONSUMER_GROUP_ID
         consumer = AIOKafkaConsumer(
             topic,
             bootstrap_servers=self.bootstrap_servers,
+            group_id=group_id,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-            auto_offset_reset='earliest'
+            auto_offset_reset='earliest',
+            enable_auto_commit=True
         )
         await consumer.start()
         try:
@@ -149,7 +154,6 @@ class KafkaService(BaseMessageQueueService):
 
     async def wait_connection_closed(self):
         """Wait for Kafka connections to close."""
-        logger.info("Closing Kafka connections...")
         if self._sync_producer:
             self._sync_producer.close()
         if self._async_producer:

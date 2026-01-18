@@ -49,3 +49,19 @@ async def upload_file(
             detail=f"Unexpected error during file upload: {str(e)}",
         )
 
+@router.post("/test-producer", status_code=status.HTTP_200_OK)
+async def test_producer(
+    message: Dict = {"data": "1"},
+) -> Dict:
+    """
+    Test Kafka Producer by sending a test message.
+    """
+    try:
+        await file_service.test_producer(message)
+        return {"status": "Message sent to Kafka successfully."}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error during test producer: {str(e)}",
+        )

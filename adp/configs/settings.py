@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     SECRET_API_KEY: Optional[str] = None
 
     KAFKA_BOOTSTRAP_SERVERS: Optional[str] = "kafka:9092"
-    KAFKA_TOPIC_UPLOADS: Optional[str] = "document-uploads"
+    KAFKA_TOPIC_NAME: Optional[str] = "upload"
     KAFKA_CONSUMER_GROUP_ID: Optional[str] = "adp-consumer-group"
 
     API_TIMEOUT_INTERVAL: Optional[int] = 60

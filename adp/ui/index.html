@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Document Parser - Professional Document Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Libraries for Office file preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 10px 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            color: white;
+            padding: 40px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.1)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,138.7C960,139,1056,117,1152,112C1248,107,1344,117,1392,122.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            opacity: 0.95;
+            font-size: 1.15em;
+            font-weight: 400;
+        }
+
+        .header .subtitle {
+            margin-top: 15px;
+            font-size: 0.95em;
+            opacity: 0.85;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .header .subtitle span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 30px;
+        }
+
+        .tab {
+            padding: 18px 32px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: #6366f1;
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .tab.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+            background: white;
+        }
+
+        .tab i {
+            margin-right: 8px;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: stretch;
+        }
+
+        .file-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .file-input-label {
+            display: block;
+            width: 100%;
+            padding: 40px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8fafc;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .file-input-label:hover {
+            border-color: #6366f1;
+            background: #f0f4ff;
+        }
+
+        .file-input-label.dragover {
+            border-color: #6366f1;
+            background: #e0e7ff;
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #6366f1;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #64748b;
+        }
+
+        .supported-formats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .format-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .format-chip {
+            background: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: #6366f1;
+            border: 1px solid #e2e8f0;
+            font-weight: 500;
+        }
+
+        .parse-btn {
+            min-width: 200px;
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .parse-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .parse-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .parse-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-box {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .status-box i {
+            font-size: 1.3em;
+        }
+
+        .status-box.success {
+            background: #ecfdf5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .status-box.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .status-box.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .preview-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .preview-box, .result-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            background: #fafbfc;
+            min-height: 500px;
+            max-height: 650px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-box h3, .result-box h3 {
+            margin-bottom: 18px;
+            color: #1e293b;
+            font-size: 1.3em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .preview-box h3 i, .result-box h3 i {
+            color: #6366f1;
+        }
+
+        #filePreview, #historyPreview {
+            width: 100%;
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            overflow: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        #filePreview img, #historyPreview img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #filePreview iframe, #historyPreview iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+
+        #filePreview pre, #historyPreview pre {
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 5px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .result-json {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 24px;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 550px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .result-json pre {
+            color: inherit;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-list {
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            margin-bottom: 24px;
+        }
+
+        .history-item {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .history-item:hover {
+            background: #f8fafc;
+        }
+
+        .history-item.selected {
+            background: #eff6ff;
+            border-left: 4px solid #6366f1;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .history-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-meta {
+            font-size: 0.85em;
+            color: #64748b;
+            display: flex;
+            gap: 12px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .file-info {
+            padding: 18px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .file-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            color: #475569;
+        }
+
+        .file-info-item i {
+            color: #6366f1;
+            width: 20px;
+        }
+
+        .file-info-item strong {
+            color: #1e293b;
+            min-width: 100px;
+        }
+
+        .empty-state {
+            padding: 60px 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+        }
+
+        /* Office file specific styling */
+        .office-preview {
+            background: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .office-preview i {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .office-preview.docx i { color: #2b579a; }
+        .office-preview.xlsx i { color: #217346; }
+        .office-preview.pptx i { color: #d24726; }
+
+        .office-preview h4 {
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .office-preview p {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .preview-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        /* Excel table styling */
+        .excel-preview {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 450px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .excel-preview table {
+            border-collapse: collapse;
+            width: auto;
+            font-size: 0.85em;
+            table-layout: auto;
+        }
+
+        .excel-preview th {
+            background: #6366f1;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #5558e3;
+            white-space: nowrap;
+        }
+
+        .excel-preview td {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        .excel-preview tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .excel-preview tr:hover {
+            background: #f1f5f9;
+        }
+
+        /* Word document styling */
+        .word-preview {
+            background: white;
+            padding: 40px;
+            min-height: 400px;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 450px;
+            box-shadow: inset 0 0 0 1px #e2e8f0;
+        }
+
+        .word-preview h1, .word-preview h2, .word-preview h3 {
+            color: #1e293b;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .word-preview p {
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .word-preview img {
+            max-width: 100%;
+            height: auto;
+            margin: 15px 0;
+        }
+
+        .word-preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .word-preview table td, .word-preview table th {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+        }
+
+        .sheet-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .sheet-tab {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            color: #475569;
+        }
+
+        .sheet-tab:hover {
+            background: #e2e8f0;
+        }
+
+        .sheet-tab.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-file-alt"></i> Auto Document Parser</h1>
+                <p>Professional Document Analysis & Content Extraction</p>
+                <div class="subtitle">
+                    <span><i class="fas fa-shield-alt"></i> Secure Processing</span>
+                    <span><i class="fas fa-bolt"></i> Fast & Accurate</span>
+                    <span><i class="fas fa-file-code"></i> Multiple Formats</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('parse')">
+                <i class="fas fa-upload"></i> Parse Document
+            </button>
+            <button class="tab" onclick="switchTab('history')">
+                <i class="fas fa-history"></i> Lịch sử
+            </button>
+        </div>
+
+        <!-- Tab Parse -->
+        <div id="parseTab" class="tab-content active">
+            <div class="upload-section">
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="file-input-label" id="dropZone">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">
+                            Click to upload or drag and drop
+                        </div>
+                        <div class="upload-hint">
+                            Hỗ trợ nhiều định dạng file | Tối đa 10MB
+                        </div>
+                        <div class="supported-formats">
+                            <div style="font-size: 0.85em; color: #64748b; margin-bottom: 8px;">Supported Formats:</div>
+                            <div class="format-chips">
+                                <span class="format-chip"><i class="fas fa-file-pdf"></i> PDF</span>
+                                <span class="format-chip"><i class="fas fa-file-word"></i> DOCX</span>
+                                <span class="format-chip"><i class="fas fa-file-excel"></i> XLSX</span>
+                                <span class="format-chip"><i class="fas fa-file-powerpoint"></i> PPTX</span>
+                                <span class="format-chip"><i class="fas fa-file-image"></i> Images</span>
+                                <span class="format-chip"><i class="fas fa-file-alt"></i> TXT</span>
+                            </div>
+                        </div>
+                    </label>
+                    <input type="file" id="fileInput" class="file-input" 
+                           accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.png,.jpg,.jpeg,.tiff,.bmp,.gif,.txt">
+                </div>
+                <button id="parseBtn" class="parse-btn" onclick="parseDocument()">
+                    <i class="fas fa-play-circle"></i> Parse Document
+                </button>
+            </div>
+
+            <div id="statusBox" class="status-box info" style="display: none;"></div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p><i class="fas fa-cog fa-spin"></i> Đang xử lý document...</p>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-box">
+                    <h3><i class="fas fa-eye"></i> Preview File</h3>
+                    <div id="fileInfo" class="file-info" style="display: none;"></div>
+                    <div id="filePreview">
+                        <div class="empty-state">
+                            <i class="fas fa-file"></i>
+                            <p>Upload file để xem preview</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-box">
+                    <h3><i class="fas fa-code"></i> Kết quả Parse</h3>
+                    <div id="resultJson" class="result-json">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Chưa có kết quả...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab History -->
+        <div id="historyTab" class="tab-content">
+            <h3 style="color: #1e293b; margin-bottom: 20px; font-size: 1.5em; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-history" style="color: #6366f1;"></i> Lịch sử Parse
+            </h3>
+            <div id="historyList" class="history-list">
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Chưa có lịch sử</p>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-box">
+                    <h3><i class="fas fa-eye"></i> Preview File</h3>
+                    <div id="historyFileInfo" class="file-info" style="display: none;"></div>
+                    <div id="historyPreview">
+                        <div class="empty-state">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Chọn một item từ lịch sử...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-box">
+                    <h3><i class="fas fa-code"></i> Kết quả Parse</h3>
+                    <div id="historyStatus" class="status-box info" style="display: none;"></div>
+                    <div id="historyResult" class="result-json">
+                        <div class="empty-state">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Chọn một item từ lịch sử...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'http://localhost:8000/api/v1/view';
+        const MAX_FILE_SIZE_MB = 10;
+        let parseHistory = [];
+        let currentFile = null;
+
+        // Initialize drag and drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                currentFile = files[0];
+                previewFile(currentFile);
+            }
+        }
+
+        // Switch tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'parse') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('parseTab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('historyTab').classList.add('active');
+            }
+        }
+
+        // File input change - preview immediately
+        fileInput.addEventListener('change', function(e) {
+            currentFile = e.target.files[0];
+            if (currentFile) {
+                previewFile(currentFile);
+            }
+        });
+
+        // Get file icon based on extension
+        function getFileIcon(fileName) {
+            const ext = fileName.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': 'fa-file-pdf',
+                'doc': 'fa-file-word',
+                'docx': 'fa-file-word',
+                'xls': 'fa-file-excel',
+                'xlsx': 'fa-file-excel',
+                'ppt': 'fa-file-powerpoint',
+                'pptx': 'fa-file-powerpoint',
+                'txt': 'fa-file-alt',
+                'png': 'fa-file-image',
+                'jpg': 'fa-file-image',
+                'jpeg': 'fa-file-image',
+                'gif': 'fa-file-image',
+                'bmp': 'fa-file-image',
+                'tiff': 'fa-file-image'
+            };
+            return icons[ext] || 'fa-file';
+        }
+
+        // Preview file content
+        function previewFile(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const preview = document.getElementById('filePreview');
+            
+            // Show file info
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            const fileIcon = getFileIcon(file.name);
+            fileInfo.innerHTML = `
+                <div class="file-info-item">
+                    <i class="fas ${fileIcon}"></i>
+                    <strong>Tên file:</strong> ${file.name}
+                </div>
+                <div class="file-info-item">
+                    <i class="fas fa-weight-hanging"></i>
+                    <strong>Kích thước:</strong> ${sizeMB} MB
+                </div>
+                <div class="file-info-item">
+                    <i class="fas fa-tag"></i>
+                    <strong>Loại:</strong> ${file.type || 'Unknown'}
+                </div>
+            `;
+            fileInfo.style.display = 'block';
+
+            // Preview content based on file type
+            const ext = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
+            
+            if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'].includes(ext)) {
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; height: auto;">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (ext === 'pdf') {
+                reader.onload = function(e) {
+                    preview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 500px; border: none;"></iframe>`;
+                };
+                reader.readAsDataURL(file);
+            } else if (ext === 'txt') {
+                reader.onload = function(e) {
+                    preview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 500px;">${escapeHtml(e.target.result)}</pre>`;
+                };
+                reader.readAsText(file);
+            } else if (['docx', 'doc'].includes(ext)) {
+                // Preview DOCX using mammoth.js
+                reader.onload = function(e) {
+                    preview.innerHTML = '<div class="word-preview"><div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading Word document...</p></div></div>';
+                    
+                    mammoth.convertToHtml({arrayBuffer: e.target.result})
+                        .then(function(result) {
+                            preview.innerHTML = `<div class="word-preview">${result.value}</div>`;
+                        })
+                        .catch(function(err) {
+                            console.error(err);
+                            preview.innerHTML = `
+                                <div class="office-preview docx">
+                                    <i class="fas fa-file-word"></i>
+                                    <h4>${file.name}</h4>
+                                    <p>Microsoft Word Document</p>
+                                    <span class="preview-badge"><i class="fas fa-exclamation-circle"></i> Preview failed - Parse to view content</span>
+                                </div>
+                            `;
+                        });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (['xlsx', 'xls'].includes(ext)) {
+                // Preview Excel using SheetJS
+                reader.onload = function(e) {
+                    try {
+                        preview.innerHTML = '<div class="excel-preview"><div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading Excel file...</p></div></div>';
+                        
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        
+                        let html = '<div class="excel-preview">';
+                        
+                        // Add sheet tabs if multiple sheets
+                        if (workbook.SheetNames.length > 1) {
+                            html += '<div class="sheet-tabs">';
+                            workbook.SheetNames.forEach((name, idx) => {
+                                html += `<div class="sheet-tab ${idx === 0 ? 'active' : ''}" onclick="switchExcelSheet('${name}', this)">${name}</div>`;
+                            });
+                            html += '</div>';
+                        }
+                        
+                        // Show first sheet by default
+                        workbook.SheetNames.forEach((sheetName, idx) => {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const htmlTable = XLSX.utils.sheet_to_html(worksheet, {header: '', id: `sheet-${idx}`});
+                            html += `<div class="sheet-content" id="sheet-content-${idx}" style="${idx === 0 ? '' : 'display:none;'}">${htmlTable}</div>`;
+                        });
+                        
+                        html += '</div>';
+                        preview.innerHTML = html;
+                        
+                        // Store workbook for sheet switching
+                        window.currentWorkbook = workbook;
+                    } catch (err) {
+                        console.error(err);
+                        preview.innerHTML = `
+                            <div class="office-preview xlsx">
+                                <i class="fas fa-file-excel"></i>
+                                <h4>${file.name}</h4>
+                                <p>Microsoft Excel Spreadsheet</p>
+                                <span class="preview-badge"><i class="fas fa-exclamation-circle"></i> Preview failed - Parse to view content</span>
+                            </div>
+                        `;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (['pptx', 'ppt'].includes(ext)) {
+                preview.innerHTML = `
+                    <div class="office-preview pptx">
+                        <i class="fas fa-file-powerpoint"></i>
+                        <h4>${file.name}</h4>
+                        <p>Microsoft PowerPoint Presentation</p>
+                        <span class="preview-badge"><i class="fas fa-info-circle"></i> Full preview available after parsing</span>
+                    </div>
+                `;
+            } else {
+                preview.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas ${fileIcon}"></i>
+                        <p>${file.name}</p>
+                        <p style="margin-top: 10px; font-size: 0.9em;">Preview không khả dụng cho loại file này</p>
+                        <span class="preview-badge" style="margin-top: 15px;">Click "Parse Document" để xử lý</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Switch Excel sheets
+        function switchExcelSheet(sheetName, tabElement) {
+            // Update active tab
+            document.querySelectorAll('.sheet-tab').forEach(tab => tab.classList.remove('active'));
+            tabElement.classList.add('active');
+            
+            // Show selected sheet
+            const workbook = window.currentWorkbook;
+            const sheetIdx = workbook.SheetNames.indexOf(sheetName);
+            
+            document.querySelectorAll('.sheet-content').forEach((content, idx) => {
+                content.style.display = idx === sheetIdx ? 'block' : 'none';
+            });
+        }
+
+        // Parse document - call API
+        async function parseDocument() {
+            if (!currentFile) {
+                showStatus('error', '⚠️ Vui lòng chọn file để upload');
+                return;
+            }
+
+            const sizeMB = currentFile.size / (1024 * 1024);
+            if (sizeMB > MAX_FILE_SIZE_MB) {
+                showStatus('error', `❌ File quá lớn (${sizeMB.toFixed(2)}MB). Giới hạn: ${MAX_FILE_SIZE_MB}MB`);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', currentFile);
+
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('parseBtn').disabled = true;
+            showStatus('info', '⏳ Đang xử lý...');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    showStatus('success', `✅ Parse thành công! Thời gian xử lý: ${elapsed}s`);
+                    displayResult(result);
+                    addToHistory(currentFile, result, `✅ Parse thành công! (${elapsed}s)`);
+                } else {
+                    const errorMsg = result.message || 'Unknown error';
+                    showStatus('error', `❌ Lỗi: ${errorMsg}`);
+                    displayResult(result);
+                    addToHistory(currentFile, result, `❌ Lỗi: ${errorMsg}`);
+                }
+            } catch (error) {
+                showStatus('error', `❌ Lỗi: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('parseBtn').disabled = false;
+            }
+        }
+
+        // Display JSON result
+        function displayResult(result) {
+            const resultDiv = document.getElementById('resultJson');
+            resultDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+        }
+
+        // Show status message
+        function showStatus(type, message) {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.className = `status-box ${type}`;
+            
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'info': 'fa-info-circle'
+            };
+            
+            statusBox.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
+            statusBox.style.display = 'flex';
+        }
+
+        // Add to history
+        function addToHistory(file, result, status) {
+            const historyItem = {
+                id: parseHistory.length,
+                timestamp: new Date().toLocaleString('vi-VN'),
+                fileName: file.name,
+                fileSize: (file.size / (1024 * 1024)).toFixed(2),
+                fileType: file.type,
+                fileExt: file.name.split('.').pop().toLowerCase(),
+                file: file,
+                result: result,
+                status: status
+            };
+
+            parseHistory.unshift(historyItem);
+            updateHistoryList();
+        }
+
+        // Update history list display
+        function updateHistoryList() {
+            const historyList = document.getElementById('historyList');
+            
+            if (parseHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Chưa có lịch sử</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = parseHistory.map(item => {
+                const icon = getFileIcon(item.fileName);
+                return `
+                    <div class="history-item" onclick="loadHistoryItem(${item.id})">
+                        <div class="history-icon">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <div class="history-details">
+                            <div class="history-title">${item.fileName}</div>
+                            <div class="history-meta">
+                                <span><i class="far fa-clock"></i> ${item.timestamp}</span>
+                                <span><i class="fas fa-weight-hanging"></i> ${item.fileSize} MB</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load history item
+        function loadHistoryItem(id) {
+            const item = parseHistory.find(h => h.id === id);
+            if (!item) return;
+
+            // Highlight selected
+            document.querySelectorAll('.history-item').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            // Show file info
+            const historyFileInfo = document.getElementById('historyFileInfo');
+            const fileIcon = getFileIcon(item.fileName);
+            historyFileInfo.innerHTML = `
+                <div class="file-info-item">
+                    <i class="fas ${fileIcon}"></i>
+                    <strong>Tên file:</strong> ${item.fileName}
+                </div>
+                <div class="file-info-item">
+                    <i class="fas fa-weight-hanging"></i>
+                    <strong>Kích thước:</strong> ${item.fileSize} MB
+                </div>
+                <div class="file-info-item">
+                    <i class="fas fa-tag"></i>
+                    <strong>Loại:</strong> ${item.fileType || 'Unknown'}
+                </div>
+            `;
+            historyFileInfo.style.display = 'block';
+
+            // Show preview
+            const historyPreview = document.getElementById('historyPreview');
+            if (item.file) {
+                const reader = new FileReader();
+                const ext = item.fileExt;
+                
+                if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'].includes(ext)) {
+                    reader.onload = function(e) {
+                        historyPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; height: auto;">`;
+                    };
+                    reader.readAsDataURL(item.file);
+                } else if (ext === 'pdf') {
+                    reader.onload = function(e) {
+                        historyPreview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 500px; border: none;"></iframe>`;
+                    };
+                    reader.readAsDataURL(item.file);
+                } else if (ext === 'txt') {
+                    reader.onload = function(e) {
+                        historyPreview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 500px;">${escapeHtml(e.target.result)}</pre>`;
+                    };
+                    reader.readAsText(item.file);
+                } else if (['docx', 'doc'].includes(ext)) {
+                    reader.onload = function(e) {
+                        historyPreview.innerHTML = '<div class="word-preview"><div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading Word document...</p></div></div>';
+                        
+                        mammoth.convertToHtml({arrayBuffer: e.target.result})
+                            .then(function(result) {
+                                historyPreview.innerHTML = `<div class="word-preview">${result.value}</div>`;
+                            })
+                            .catch(function(err) {
+                                console.error(err);
+                                historyPreview.innerHTML = `
+                                    <div class="office-preview docx">
+                                        <i class="fas fa-file-word"></i>
+                                        <h4>${item.fileName}</h4>
+                                        <p>Microsoft Word Document</p>
+                                    </div>
+                                `;
+                            });
+                    };
+                    reader.readAsArrayBuffer(item.file);
+                } else if (['xlsx', 'xls'].includes(ext)) {
+                    reader.onload = function(e) {
+                        try {
+                            historyPreview.innerHTML = '<div class="excel-preview"><div style="text-align: center; padding: 40px;"><div class="spinner"></div><p>Loading Excel file...</p></div></div>';
+                            
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, {type: 'array'});
+                            
+                            let html = '<div class="excel-preview">';
+                            
+                            if (workbook.SheetNames.length > 1) {
+                                html += '<div class="sheet-tabs">';
+                                workbook.SheetNames.forEach((name, idx) => {
+                                    html += `<div class="sheet-tab ${idx === 0 ? 'active' : ''}" onclick="switchExcelSheet('${name}', this)">${name}</div>`;
+                                });
+                                html += '</div>';
+                            }
+                            
+                            workbook.SheetNames.forEach((sheetName, idx) => {
+                                const worksheet = workbook.Sheets[sheetName];
+                                const htmlTable = XLSX.utils.sheet_to_html(worksheet, {header: '', id: `history-sheet-${idx}`});
+                                html += `<div class="sheet-content" id="history-sheet-content-${idx}" style="${idx === 0 ? '' : 'display:none;'}">${htmlTable}</div>`;
+                            });
+                            
+                            html += '</div>';
+                            historyPreview.innerHTML = html;
+                            window.currentWorkbook = workbook;
+                        } catch (err) {
+                            console.error(err);
+                            historyPreview.innerHTML = `
+                                <div class="office-preview xlsx">
+                                    <i class="fas fa-file-excel"></i>
+                                    <h4>${item.fileName}</h4>
+                                    <p>Microsoft Excel Spreadsheet</p>
+                                </div>
+                            `;
+                        }
+                    };
+                    reader.readAsArrayBuffer(item.file);
+                } else if (['pptx', 'ppt'].includes(ext)) {
+                    historyPreview.innerHTML = `
+                        <div class="office-preview pptx">
+                            <i class="fas fa-file-powerpoint"></i>
+                            <h4>${item.fileName}</h4>
+                            <p>Microsoft PowerPoint Presentation</p>
+                        </div>
+                    `;
+                } else {
+                    historyPreview.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas ${fileIcon}"></i>
+                            <p>${item.fileName}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Show status
+            const historyStatus = document.getElementById('historyStatus');
+            const statusClass = item.status.includes('✅') ? 'success' : 'error';
+            const statusIcon = statusClass === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            historyStatus.className = `status-box ${statusClass}`;
+            historyStatus.innerHTML = `<i class="fas ${statusIcon}"></i><span>${item.status}</span>`;
+            historyStatus.style.display = 'flex';
+
+            // Show result
+            const historyResult = document.getElementById('historyResult');
+            historyResult.innerHTML = `<pre>${JSON.stringify(item.result, null, 2)}</pre>`;
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -1,13 +1,12 @@
-from urllib.parse import urlparse
 import boto3
+from typing import Dict
+from urllib.parse import urlparse
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from typing import Dict
 
 from adp.configs.settings import settings
 from adp.configs.logger import get_logger
-
-logger = get_logger(__name__)
+logger = get_logger(layer="API", name=__name__)
 
 class S3Service:
     _instance = None
@@ -65,9 +64,9 @@ class S3Service:
         """Return the S3 URI for the given bucket and object key."""
         return f"s3://{bucket_name}/{object_key}"
         
-    def validate_s3_uri(uri: str) -> tuple[str, str]:
+    def parse_s3_uri(uri: str) -> tuple[str, str]:
         """
-        Validate and parse an S3 URI into bucket and key.
+        Parse an S3 URI into bucket and key.
         """
         p = urlparse(uri)
         if p.scheme != "s3" or not p.netloc or not p.path:
@@ -107,6 +106,73 @@ class S3Service:
 
         except ClientError as e:
             raise RuntimeError(f"S3 delete object error: {e}") from e
-        
+    
+    def delete_all_objects(self, bucket_name: str, prefix: str = "") -> None:
+        """Delete all objects in an S3 bucket with the given prefix. if prefix is empty, delete all objects in the bucket."""
+
+        try:
+            bucket_name = bucket_name or self.bucket_name
+            if not bucket_name:
+                raise ValueError("Bucket name must be provided")
+            
+            paginator = self.s3_client.get_paginator('list_objects_v2')
+            page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
+
+            objects_to_delete = []
+            for page in page_iterator:
+                contents = page.get('Contents', [])
+                for obj in contents:
+                    objects_to_delete.append({'Key': obj['Key']})
+
+            if objects_to_delete:
+                self.s3_client.delete_objects(
+                    Bucket=bucket_name,
+                    Delete={'Objects': objects_to_delete}
+                )
+                logger.info(f"✅ Deleted all objects in s3://{bucket_name}/{prefix}")
+            else:
+                logger.info(f"ℹ️ No objects found to delete in s3://{bucket_name}/{prefix}")
+
+        except ClientError as e:
+            raise RuntimeError(f"S3 delete all objects error: {e}") from e
+
+    def fetch_object_metadata(self, bucket_name: str, object_key: str) -> dict:
+        """Fetch metadata of an S3 object."""
+
+        try:
+            bucket_name = bucket_name or self.bucket_name
+            if not bucket_name:
+                raise ValueError("Bucket name must be provided")
+            
+            response = self.s3_client.head_object(Bucket=bucket_name, Key=object_key)
+            logger.info(f"✅ Fetched metadata for s3://{bucket_name}/{object_key}")
+            return response
+
+        except ClientError as e:
+            raise RuntimeError(f"S3 fetch metadata error: {e}") from e
+
+    def list_objects(self, bucket_name: str, prefix: str = "") -> list:
+        """List objects in an S3 bucket with the given prefix. If prefix is empty, list all objects in the bucket."""
+
+        try:
+            bucket_name = bucket_name or self.bucket_name
+            if not bucket_name:
+                raise ValueError("Bucket name must be provided")
+            
+            paginator = self.s3_client.get_paginator('list_objects_v2')
+            page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
+
+            objects = []
+            for page in page_iterator:
+                contents = page.get('Contents', [])
+                for obj in contents:
+                    objects.append(obj['Key'])
+
+            logger.info(f"✅ Listed objects in s3://{bucket_name}/{prefix}")
+            return objects
+
+        except ClientError as e:
+            raise RuntimeError(f"S3 list objects error: {e}") from e
+
 s3_service = S3Service()
         

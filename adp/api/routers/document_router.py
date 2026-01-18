@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from uuid import UUID
 from typing import List
 
 from adp.services.storage.pg import PGService
@@ -12,7 +11,7 @@ from adp.api.security.api_key import validate_api_key
 from adp.api.middleware.rate_limit import limiter
 
 router = APIRouter(
-    prefix="/documents", 
+    prefix="/api/v1/documents", 
     tags=["Documents"],
     responses={
         status.HTTP_200_OK: {"description": "OK"},
