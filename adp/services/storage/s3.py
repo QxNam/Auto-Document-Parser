@@ -27,7 +27,6 @@ class S3Service:
         self.bucket_name = getattr(settings, 'S3_BUCKET_NAME', None)
 
     def upload_file(self, local_path: str, s3_key: str, bucket: Optional[str] = None) -> bool:
-        """Tải file từ máy cục bộ lên S3."""
         target_bucket = bucket or self.bucket_name
 
         if not os.path.exists(local_path):
@@ -43,7 +42,6 @@ class S3Service:
             return False
 
     def delete_file(self, s3_key: str, bucket: Optional[str] = None) -> bool:
-        """Xóa một file trên S3."""
         target_bucket = bucket or self.bucket_name
         try:
             self.s3_client.delete_object(Bucket=target_bucket, Key=s3_key)
@@ -55,27 +53,25 @@ class S3Service:
     def download_file(self, s3_key: str, bucket: Optional[str] = None) -> str:
         target_bucket = bucket or self.bucket_name
         file_name = os.path.basename(s3_key)
-        # Đảm bảo thư mục lưu trữ tồn tại 
-        local_dir = os.path.join(os.getcwd(), "temp_downloads")
+        local_dir = os.path.join(os.getcwd(), "temp")
         os.makedirs(local_dir, exist_ok=True)
         
         local_path = os.path.join(local_dir, file_name)
 
         try:
             self.s3_client.download_file(target_bucket, s3_key, local_path)
-            print(f"Đã tải thành công về: {local_path}")
+            logger.info(f"Downloaded to: {local_path}")
             return local_path
         except Exception as e:
-            print(f"Lỗi khi pull file: {e}")
+            logger.error(f"Error downloading file: {e}")
             return ""
 
     def get_uri(self, s3_key: str, bucket: Optional[str] = None) -> str:
-        """Trả về URI chuẩn (s3://bucket/key) của file."""
+
         target_bucket = bucket or self.bucket_name
         return f"s3://{target_bucket}/{s3_key}"
 
     def get_presigned_url(self, s3_key: str, expiration: int = 3600, bucket: Optional[str] = None) -> Optional[str]:
-        """Tạo URL tạm thời để UI có thể tải/xem file (ví dụ: file PDF/Image)."""
         target_bucket = bucket or self.bucket_name
         try:
             response = self.s3_client.generate_presigned_url(
