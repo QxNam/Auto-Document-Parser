@@ -1,6 +1,3 @@
-from adp.services.observer.targets.api import HttpTarget
-
-
 def create_observer() -> None:
     """
     Factory function to create observer instances based on configuration.

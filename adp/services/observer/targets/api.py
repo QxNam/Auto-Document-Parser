@@ -1,5 +1,6 @@
 from adp.services.observer.base_observer import BaseObserver
 
+
 class HttpTarget(BaseObserver):
     """Target HTTP send data async, support auth, retry, rate_limit."""
 

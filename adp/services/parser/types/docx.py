@@ -1,5 +1,5 @@
-from adp.services.parser.parser_registry import ParserRegistry
 from adp.services.parser.base_parser import Parser
+from adp.services.parser.parser_registry import ParserRegistry
 
 
 @ParserRegistry.register([".docx", ".doc"])

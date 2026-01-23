@@ -1,18 +1,17 @@
-from adp.configs.logger import get_logger
 import os
-import time
+
+from adp.configs.logger import get_logger
 from adp.services.parser.parser_registry import ParserRegistry
 
 logger = get_logger(__name__)
+
 
 class Parser:
     """
     Document parsing service with Registry Pattern.
     """
 
-    def parse_document(
-        self, file_path
-    ):
+    def parse_document(self, file_path):
         try:
             _, extension = os.path.splitext(file_path)
 

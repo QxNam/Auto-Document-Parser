@@ -1,30 +1,32 @@
 import os
+from typing import Optional
+
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from typing import Optional
 
-from adp.configs.settings import settings
 from adp.configs.logger import get_logger
+from adp.configs.settings import settings
 
 logger = get_logger(__name__)
+
 
 class S3Service:
     def __init__(self):
         s3_config = Config(
             region_name=settings.AWS_DEFAULT_REGION,
-            retries={'max_attempts': 3, 'mode': 'standard'},
-            max_pool_connections=20
+            retries={"max_attempts": 3, "mode": "standard"},
+            max_pool_connections=20,
         )
 
         self.s3_client = boto3.client(
-            's3',
+            "s3",
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_DEFAULT_REGION,
-            config=s3_config
+            config=s3_config,
         )
-        self.bucket_name = getattr(settings, 'S3_BUCKET_NAME', None)
+        self.bucket_name = getattr(settings, "S3_BUCKET_NAME", None)
 
     def upload_file(self, local_path: str, s3_key: str, bucket: Optional[str] = None) -> bool:
         """Tải file từ máy cục bộ lên S3."""
@@ -33,7 +35,7 @@ class S3Service:
         if not os.path.exists(local_path):
             logger.error(f"Local file not found: {local_path}")
             return False
-        
+
         try:
             self.s3_client.upload_file(local_path, target_bucket, s3_key)
             logger.info(f"Successfully uploaded {local_path} to s3://{target_bucket}/{s3_key}")
@@ -63,12 +65,9 @@ class S3Service:
         target_bucket = bucket or self.bucket_name
         try:
             response = self.s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': target_bucket, 'Key': s3_key},
-                ExpiresIn=expiration
+                "get_object", Params={"Bucket": target_bucket, "Key": s3_key}, ExpiresIn=expiration
             )
             return response
         except ClientError as e:
             logger.error(f"Error generating presigned URL: {e}")
             return None
-        
