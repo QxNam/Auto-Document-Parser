@@ -1,7 +1,7 @@
-# Auto Document Parser
+# Auto Document Parse
 
 ## Pipeline tổng quan
-Hệ thống Auto Document Parser (ADP) được thiết kế để tự động trích xuất và xử lý tài liệu từ các nguồn khác nhau. Dưới đây là mô tả tổng quan về pipeline của hệ thống:
+Hệ thống Auto Document Parse (ADP) được thiết kế để tự động trích xuất và xử lý tài liệu từ các nguồn khác nhau. Dưới đây là mô tả tổng quan về pipeline của hệ thống:
 1. **Nhận tài liệu**: Hệ thống nhận tài liệu từ các nguồn như email, tải lên qua giao diện web, hoặc từ các dịch vụ lưu trữ đám mây.
 2. **Xử lý hàng đợi tin nhắn**: Tài liệu được đưa vào hàng đợi tin nhắn để quản lý và xử lý tuần tự, điều này giúp cân bằng tải cho server xử lý.
 3. **Trích xuất tài liệu**: Dịch vụ trích xuất tài liệu sử dụng các mô hình học máy và kỹ thuật xử lý ngôn ngữ tự nhiên để phân tích và trích xuất thông tin quan trọng từ tài liệu.
@@ -26,7 +26,7 @@ Hệ thống Auto Document Parser (ADP) được thiết kế để tự động
 │   ├── services
 │   │   ├── message_queue       # dịch vụ hàng đợi tin nhắn
 │   │   ├── observer            # dịch vụ trả về
-│   │   ├── parser              # dịch vụ trích xuất tài liệu
+│   │   ├── parse               # dịch vụ trích xuất tài liệu
 │   │   └── storage             # dịch vụ lưu trữ
 │   └── workers
 │       └── processor.py        # xử lý chính

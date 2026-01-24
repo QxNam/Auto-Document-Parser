@@ -14,3 +14,13 @@ sqlalchemy==2.0.45
 kafka-python-ng==2.2.3
 python-multipart==0.0.21
 aiokafka==0.13.0
+
+# docling==2.68.0
+tesserocr==2.9.2
+pymupdf4llm==0.2.9
+docling-core==2.57.0
+docling-parse==4.7.3
+pypdf==6.5.0
+docx==0.2.4
+google-genai==1.60.0
+python-pptx==1.0.2

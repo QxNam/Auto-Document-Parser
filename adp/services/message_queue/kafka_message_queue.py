@@ -6,9 +6,7 @@ from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
 from adp.configs.settings import settings
 from adp.services.message_queue.base_message_queue import BaseMessageQueueService
-from adp.configs.logger import get_logger
-
-logger = get_logger(layer="KAFKA", name=__name__)
+from adp.configs.logger import worker_logger as logger
 
 KAFKA_BOOTSTRAP_SERVERS = settings.KAFKA_BOOTSTRAP_SERVERS
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME

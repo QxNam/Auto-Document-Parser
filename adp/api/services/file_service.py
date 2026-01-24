@@ -3,17 +3,17 @@ import time
 import json
 from sqlalchemy.orm import Session
 
+from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.s3 import s3_service
 from adp.services.storage.pg import PGService
 from adp.services.message_queue.kafka_message_queue import kafka_service
 from adp.configs.settings import settings
-from adp.configs.logger import get_logger
-logger = get_logger(layer="API", name=__name__)
+from adp.configs.logger import api_logger as logger
 
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 
 class FileService:
-    async def send_to_queue(self, db: Session, file: bytes, filename: str, metadata_str: str):
+    async def send_to_queue(self, db: Session, file: bytes, file_name: str, metadata_str: str):
         """
         Saves the file and sends a message to the processing queue.
         1. Checks file size and type.
@@ -24,25 +24,25 @@ class FileService:
         try:
             file_obj = io.BytesIO(file)
             file_size = len(file)
-            content_type = filename.split(".")[-1]
+            content_type = file_name.split(".")[-1]
 
             # Step 1: Validate file
             self._check_file_size(file)
-            self._check_file_type(filename)
-            logger.info(f"[Step-01] File {filename} passed validation checks.")
+            self._check_file_type(file_name)
+            logger.info(f"[Step-01] File {file_name} passed validation checks.")
 
             # Step 2: Upload file to S3
             timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(time.time()))
             s3_response = s3_service.upload_fileobj(
                 file_obj=file_obj,
                 bucket_name=settings.S3_BUCKET_NAME,
-                object_key=f"upload/{timestamp}_{filename}"
+                object_key=f"upload/{timestamp}_{file_name}"
             )
 
             if s3_response.get("status") is not True:
                 raise RuntimeError("[Step-02] Failed to upload file to S3.")
             
-            logger.info(f"[Step-02] File {filename} uploaded to S3 at {s3_response.get('uri')}.")
+            logger.info(f"[Step-02] File {file_name} uploaded to S3 at {s3_response.get('uri')}.")
             s3_uri = s3_response.get("uri")
 
             # Step 3: Save metadata to DB
@@ -50,7 +50,7 @@ class FileService:
             pg_service = PGService()
             doc_data = {
                 "s3_uri": s3_uri,
-                "file_name": filename,
+                "file_name": file_name,
                 "file_size": file_size,
                 "content_type": content_type,
                 "status": "pending",
@@ -64,14 +64,16 @@ class FileService:
 
             # Step 4: Publish message to Kafka
             time_current = int(time.time())
-            message = {
-                "metadata_id": str(doc.id),
-                "s3_uri": s3_uri,
-                "status": "pending",
-                "time": time_current,
-                "file_size": file_size, 
-                "filename": filename
-            }
+            metadata_msg = MetadataMessage(
+                metadata_id=str(doc.id),
+                s3_uri=s3_uri,
+                status=ProcessingStatus.PENDING,
+                time=time_current,
+                file_size=file_size, 
+                file_name=file_name
+            )
+            message = metadata_msg.to_dict()
+            
             status_push = await kafka_service.publish_message_async(topic=KAFKA_TOPIC_NAME, message=message)
             if not status_push:
                 raise RuntimeError("[Step-04] Failed to publish message to Kafka.")
@@ -108,15 +110,15 @@ class FileService:
         if file_size_mb > max_size_mb:
             raise ValueError(f"File size {file_size_mb:.2f} MB exceeds the maximum allowed size of {max_size_mb} MB.")
         
-    def _check_file_type(self, filename: str):
+    def _check_file_type(self, file_name: str):
         """
         Checks if the file type is allowed based on its extension.
         """
         allowed_extensions = settings.ALLOWED_FILE_EXTENSIONS.split(",") if settings.ALLOWED_FILE_EXTENSIONS else [".pdf", ".docx", ".txt"]
 
-        file_extension = "." + filename.split(".")[-1].lower()
+        file_extension = "." + file_name.split(".")[-1].lower()
         logger.debug(f"> File extension: {file_extension}")
 
-        if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
-            raise ValueError(f"File type of {filename} is not allowed. Allowed types: {allowed_extensions}")
+        if not any(file_name.lower().endswith(ext) for ext in allowed_extensions):
+            raise ValueError(f"File type of {file_name} is not allowed. Allowed types: {allowed_extensions}")
     

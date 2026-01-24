@@ -1,6 +1,5 @@
 import asyncio
-from adp.configs.logger import get_logger
-logger = get_logger(layer="WORKER", name=__name__)
+from adp.configs.logger import worker_logger as logger
 
 class ObserverManager:
     """

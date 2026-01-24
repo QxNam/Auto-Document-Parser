@@ -2,8 +2,7 @@ import asyncio
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
-from adp.configs.logger import get_logger
-logger = get_logger(layer="API", name=__name__)
+from adp.configs.logger import api_logger as logger
 
 class TimeoutMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, timeout_seconds: int = 30, exclude_paths: list = None):

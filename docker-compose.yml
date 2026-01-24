@@ -50,7 +50,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-    
+
   kafka-init-topics:
     image: apache/kafka
     container_name: kafka-init-topics
@@ -77,7 +77,7 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: "false"
     depends_on:
       - kafka
-  
+
   ui:
     container_name: adp_ui
     build:
@@ -108,8 +108,8 @@ services:
       - ./logs:/app/logs
     restart: always
 
-  worker_parser:
-    # container_name: adp_worker_parser
+  worker_parse:
+    container_name: adp_worker_parse
     build: .
     image: adp:latest
     command: ["python", "-m", "adp.workers.processor"]
@@ -120,15 +120,17 @@ services:
       - .env
     volumes:
       - ./adp:/app/adp
-      - ./logs:/logs
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '4'
-          memory: 8GB
+      - ./logs:/app/logs
+      - ./weights:/app/weights
+      - ./saved:/tmp/saved
+
+    # deploy:
+    #   replicas: 2
+    #   resources:
+    #     limits:
+    #       cpus: '4'
+    #       memory: 8GB
 
 volumes:
   kafka-data:
     name: kafka-data
-  

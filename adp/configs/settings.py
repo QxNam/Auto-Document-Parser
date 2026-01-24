@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     API_TIMEOUT_INTERVAL: Optional[int] = 60
     MAX_FILE_SIZE_MB: Optional[int] = 10
+    MAX_PAGE_COUNT: Optional[int] = 200
     ALLOWED_FILE_EXTENSIONS: Optional[str] = ".pdf,.docx,.txt"
 
     # Pydantic configuration to load environment variables from a .env file

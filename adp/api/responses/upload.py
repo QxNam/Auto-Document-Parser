@@ -11,7 +11,7 @@ class UploadResponse(BaseModel):
     status: str = Field(..., description="Status of the file upload")
     time: int = Field(..., description="Timestamp of the upload in epoch format")
     file_size: int = Field(..., description="Size of the uploaded file in bytes")
-    filename: str = Field(..., description="Name of the uploaded file")
+    file_name: str = Field(..., description="Name of the uploaded file")
 
     class Config:
         json_schema_extra = {
@@ -21,6 +21,6 @@ class UploadResponse(BaseModel):
                 "status": "pending",
                 "time": 1700000000,
                 "file_size": 204800,
-                "filename": "document.pdf"
+                "file_name": "document.pdf"
             }
         }

@@ -9,8 +9,8 @@ from adp.configs.settings import settings
 from adp.configs.database import create_tables
 
 app = FastAPI(
-    title="API Auto Document Parser",
-    description="API for Auto Document Parser project",
+    title="API Auto Document Parse",
+    description="API for Auto Document Parse project",
     version="0.0.1",
 )
 
@@ -39,7 +39,7 @@ app.add_middleware(
 
 @app.get("/", tags=["Home"])
 async def root():
-    return {"message": "Welcome to the Auto Document Parser API!"}
+    return {"message": "Welcome to the Auto Document Parse API!"}
 
 @app.get("/health", tags=["Home"])
 async def health_check():

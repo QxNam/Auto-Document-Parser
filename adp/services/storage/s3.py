@@ -1,3 +1,5 @@
+import io
+import os
 import boto3
 from typing import Dict
 from urllib.parse import urlparse
@@ -5,8 +7,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from adp.configs.settings import settings
-from adp.configs.logger import get_logger
-logger = get_logger(layer="API", name=__name__)
+from adp.configs.logger import worker_logger as logger
 
 class S3Service:
     _instance = None
@@ -64,7 +65,7 @@ class S3Service:
         """Return the S3 URI for the given bucket and object key."""
         return f"s3://{bucket_name}/{object_key}"
         
-    def parse_s3_uri(uri: str) -> tuple[str, str]:
+    def parse_s3_uri(self,uri: str) -> tuple[str, str]:
         """
         Parse an S3 URI into bucket and key.
         """
@@ -76,8 +77,8 @@ class S3Service:
         return bucket, key
 
     def download_fileobj(
-        self, bucket_name: str, object_key: str, file_obj
-    ) -> None:
+        self, bucket_name: str, object_key: str
+    ) -> io.BytesIO:
         """Download a file-like object from S3."""
 
         try:
@@ -85,10 +86,36 @@ class S3Service:
             if not bucket_name:
                 raise ValueError("Bucket name must be provided")
             
-            self.s3_client.download_fileobj(
-                bucket_name, object_key, file_obj
-            )
+            file_buffer = io.BytesIO()
+            self.s3_client.download_fileobj(bucket_name, object_key, file_buffer)
+            file_buffer.seek(0)
+            
             logger.info(f"✅ S3 fileobj downloaded from s3://{bucket_name}/{object_key}")
+            return file_buffer
+
+        except ClientError as e:
+            raise RuntimeError(f"S3 fileobj download error: {e}") from e
+    
+    def download_file(self, bucket_name: str, key: str, output_path: str) -> str:
+        """
+        Download a file from S3 to a local path and return path.
+        """
+        try:
+            directory = os.path.dirname(output_path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                logger.info(f"📁 Created: {directory}")
+
+            logger.info(f"📥 Downloading: s3://{bucket_name}/{key} -> {output_path}")
+
+            target_bucket = bucket_name or self.bucket_name
+            if not target_bucket:
+                raise ValueError("Bucket name must not be empty.")
+
+            self.s3_client.download_file(target_bucket, key, output_path)
+
+            logger.info(f"✅ File downloaded successfully.")
+            return output_path
 
         except ClientError as e:
             raise RuntimeError(f"S3 fileobj download error: {e}") from e

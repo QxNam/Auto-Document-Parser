@@ -224,5 +224,18 @@ venv*
 local*
 .ruff_cache
 
+weights/
 data/
+saved/
+.vscode/
 *.ipynb
+*.txt
+*.log
+*.pdf
+*.doc
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.gif
+

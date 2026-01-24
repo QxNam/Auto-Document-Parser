@@ -1,30 +1,39 @@
-import os
 import sys
 from loguru import logger
 
-os.makedirs("./logs", exist_ok=True)
+FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{line} | {message}"
 
-LOGGER_NAME_DEFAULT = "ADP"
-FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[layer]} | {name}:{line} | {message}"
+logger.remove()
 
+logger.add(sys.stdout, format=FILE_FORMAT, level="DEBUG")
 
 logger.add(
-    "./logs/all.log",
+    "./logs/api.log",
+    filter=lambda record: record["extra"].get("layer") == "API",
     level="INFO",
     rotation="50 MB",
-    compression="zip",
-    format=FILE_FORMAT,
+    retention="30 days",
     enqueue=True
 )
 
-# File handler cho lỗi
+logger.add(
+    "./logs/worker.log",
+    filter=lambda record: record["extra"].get("layer") == "WORKER",
+    level="INFO",
+    rotation="50 MB",
+    retention="30 days",
+    enqueue=True
+)
+
 logger.add(
     "./logs/errors.log",
     level="ERROR",
-    rotation="50 MB",
-    format=FILE_FORMAT,
+    rotation="100 MB",
+    retention="60 days",
     enqueue=True
 )
 
-def get_logger(layer: str, name: str = "ADP"):
-    return logger.bind(layer=layer, name=name)
+
+api_logger = logger.bind(layer="API")
+worker_logger = logger.bind(layer="WORKER")
+default_logger = logger.bind(layer="SYSTEM")
