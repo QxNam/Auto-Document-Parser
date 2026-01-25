@@ -1,0 +1,41 @@
+# Prometheus Configuration
+# File này cấu hình Prometheus để scrape metrics từ các services
+
+global:
+  scrape_interval: 15s      # Cào metrics mỗi 15 giây
+  evaluation_interval: 15s  # Đánh giá rules mỗi 15 giây
+  
+  # Labels được thêm vào tất cả metrics
+  external_labels:
+    monitor: 'auto-document-parser'
+    environment: 'development'
+
+# Scrape configurations - Danh sách services cần scrape metrics
+scrape_configs:
+  # Job 1: FastAPI API Service
+  - job_name: 'adp-api'
+    static_configs:
+      - targets: ['api:8000']  # Địa chỉ API service trong Docker network
+    metrics_path: '/metrics'    # Endpoint metrics
+    scrape_interval: 10s        # Scrape mỗi 10 giây (nhanh hơn global)
+    
+  # Job 2: Celery Worker (nếu có expose metrics endpoint)
+  # - job_name: 'adp-worker'
+  #   static_configs:
+  #     - targets: ['worker:9090']
+  #   metrics_path: '/metrics'
+  
+  # Job 3: Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Alerting configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Rule files (optional)
+# rule_files:
+#   - 'alerts.yml'

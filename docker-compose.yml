@@ -1,5 +1,9 @@
 version: "3.8"
+
 services:
+  # ============================================================================
+  # KAFKA MESSAGE QUEUE
+  # ============================================================================
   kafka:
     image: apache/kafka
     hostname: kafka
@@ -31,6 +35,8 @@ services:
       retries: 5
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - adp_network
 
   kafka-ui:
     container_name: kafka-ui
@@ -44,7 +50,12 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: "false"
     depends_on:
       - kafka
-  
+    networks:
+      - adp_network
+
+  # ============================================================================
+  # APPLICATION SERVICES
+  # ============================================================================
   api:
     container_name: adp_api
     build: .
@@ -58,7 +69,11 @@ services:
       - ./adp:/app/adp
       - ./tests:/app/tests
       - ./logs:/app/logs
-    
+    networks:
+      - adp_network
+    depends_on:
+      - kafka
+
   # worker:
   #   container_name: adp_worker
   #   build: .
@@ -68,9 +83,95 @@ services:
   #     - .env
   #   volumes:
   #     - ./adp:/app/adp
-  #     - ./logs:/logs
-  
-# networks:
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - adp_network
+  #   depends_on:
+  #     - kafka
+
+  # ============================================================================
+  # MONITORING STACK - Prometheus, Grafana, Loki, Promtail
+  # ============================================================================
+
+  # Prometheus - Thu thập metrics từ /metrics endpoints
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: adp_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - adp_network
+    restart: unless-stopped
+
+  # Grafana - Dashboard visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: adp_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - adp_network
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+  # Loki - Log aggregation system
+  loki:
+    image: grafana/loki:latest
+    container_name: adp_loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - adp_network
+    restart: unless-stopped
+
+  # Promtail - Log shipper (gửi logs lên Loki)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: adp_promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - ./logs:/var/log/adp
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - adp_network
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+# Networks
+networks:
+  adp_network:
+    driver: bridge
+
+# Volumes
 volumes:
   kafka-data:
     name: kafka-data
+  prometheus_data:
+  grafana_data:
+  loki_data:

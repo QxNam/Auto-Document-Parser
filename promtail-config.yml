@@ -1,0 +1,63 @@
+# Promtail Configuration
+# File này cấu hình Promtail để đọc logs từ files và gửi lên Loki
+
+# Server configuration
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# Positions file - Lưu vị trí đọc log để tránh đọc lại
+positions:
+  filename: /tmp/positions.yaml
+
+# Loki client configuration - Nơi gửi logs
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+# Scrape configurations - Đọc logs từ đâu
+scrape_configs:
+  # Job 1: Application logs
+  - job_name: adp-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: adp-application
+          service: auto-document-parser
+          __path__: /var/log/adp/*.log  # Đọc tất cả .log files trong /var/log/adp/
+    
+    # Pipeline stages - Xử lý logs
+    pipeline_stages:
+      # Stage 1: Parse JSON logs (nếu logs là JSON format)
+      - json:
+          expressions:
+            level: level
+            timestamp: timestamp
+            message: message
+            service: service
+      
+      # Stage 2: Extract labels từ parsed data
+      - labels:
+          level:
+          service:
+      
+      # Stage 3: Timestamp parsing
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      
+      # Stage 4: Output formatting
+      - output:
+          source: message
+
+  # Job 2: Docker container logs (nếu cần)
+  # - job_name: docker-logs
+  #   docker_sd_configs:
+  #     - host: unix:///var/run/docker.sock
+  #       refresh_interval: 5s
+  #   relabel_configs:
+  #     - source_labels: ['__meta_docker_container_name']
+  #       regex: '/(.*)'
+  #       target_label: 'container'
+  #     - source_labels: ['__meta_docker_container_log_stream']
+  #       target_label: 'stream'
