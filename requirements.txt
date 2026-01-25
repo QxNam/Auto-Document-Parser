@@ -24,3 +24,5 @@ pypdf==6.5.0
 docx==0.2.4
 google-genai==1.60.0
 python-pptx==1.0.2
+
+prometheus-client==0.24.1

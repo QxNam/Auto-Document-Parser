@@ -8,8 +8,10 @@ class DocumentResponse(BaseModel):
     s3_uri: str
     file_name: str
     file_size: int
+    file_hash: Optional[str]
     content_type: Optional[str]
     status: str
+    s3_output_uri: Optional[str]
     metadata_info: Optional[dict[str, Any]]
     created_at: datetime
     updated_at: datetime

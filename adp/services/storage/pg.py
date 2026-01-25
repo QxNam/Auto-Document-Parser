@@ -1,4 +1,5 @@
 from typing import Any, Dict
+from rpds import List
 from sqlalchemy.orm import Session
 from adp.services.storage.models.document import DocumentModel
 from uuid import UUID, uuid4
@@ -21,6 +22,18 @@ class PGService:
     @staticmethod
     async def get_by_id(db: Session, document_id: UUID):
         return db.query(DocumentModel).filter(DocumentModel.id == document_id).first()
+    
+    @staticmethod
+    async def get_document_by_hash(db: Session, file_hash: str):
+        return db.query(DocumentModel).filter(DocumentModel.file_hash == file_hash).first()
+    
+    @staticmethod
+    async def get_documents_by_file_name(db: Session, file_name: str) -> List:
+        return db.query(DocumentModel).filter(DocumentModel.file_name.ilike(f"%{file_name}%")).all()
+    
+    @staticmethod
+    async def get_document_by_file_name(db: Session, file_name: str) -> DocumentModel:
+        return db.query(DocumentModel).filter(DocumentModel.file_name == file_name).first()
     
     @staticmethod
     async def create(db: Session, document: DocumentModel):

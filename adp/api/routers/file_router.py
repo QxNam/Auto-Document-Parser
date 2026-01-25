@@ -49,19 +49,41 @@ async def upload_file(
             detail=f"Unexpected error during file upload: {str(e)}",
         )
 
-@router.post("/test-producer", status_code=status.HTTP_200_OK)
-async def test_producer(
-    message: Dict = {"data": "1"},
-) -> Dict:
+# @router.post("/test-producer", status_code=status.HTTP_200_OK)
+# async def test_producer(
+#     message: Dict = {"data": "1"},
+# ) -> Dict:
+#     """
+#     Test Kafka Producer by sending a test message.
+#     """
+#     try:
+#         await file_service.test_producer(message)
+#         return {"status": "Message sent to Kafka successfully."}
+
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Unexpected error during test producer: {str(e)}",
+#         )
+
+@router.post("/get-db", status_code=status.HTTP_200_OK)
+async def test_db(
+    file: UploadFile = File(..., description="File to be uploaded and processed"),
+    metadata: str = File("", description="Optional metadata in JSON string format"),
+    db: Session = Depends(get_db)
+):
     """
-    Test Kafka Producer by sending a test message.
+    Uploads a file to parser processing.
     """
     try:
-        await file_service.test_producer(message)
-        return {"status": "Message sent to Kafka successfully."}
+        result = await file_service._check_file_exist(file.filename, await file.read(), db)
+        return result
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error during test producer: {str(e)}",
+            detail=f"Unexpected error during file upload: {str(e)}",
         )
