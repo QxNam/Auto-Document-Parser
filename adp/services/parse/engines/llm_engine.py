@@ -6,10 +6,10 @@ from adp.configs.logger import worker_logger as logger
 
 class GeminiPDFParserEngine:
     def __init__(self, model: str = "gemini-2.5-flash"):
-        if not settings.google_api_key:
-            logger.error("GOOGLE_API_KEY is missing from environment variables!")
+        if not settings.GEMINI_API_KEY:
+            logger.error("GEMINI_API_KEY is missing from environment variables!")
             
-        self.client = genai.Client(api_key=settings.google_api_key)
+        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
         self.model = model
 
     def to_markdown(self, file_obj: io.BytesIO) -> str:
