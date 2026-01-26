@@ -8,6 +8,7 @@ import pymupdf4llm
 from adp.services.parse.parse_registry import ParseRegistry
 from adp.services.parse.base_parse import BaseParse
 from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
+from adp.services.parse.engines.llm_engine import GeminiPDFParserEngine
 from adp.configs.logger import worker_logger as logger
 
 DEFAULT_DPI = 150
@@ -44,8 +45,19 @@ class PDFParse(BaseParse):
         """
 
         try:
-            doc = fitz.open(stream=file_obj, filetype="pdf")
-            md_text = pymupdf4llm.to_markdown(doc)
+            md_text = self.text_layer_engine.to_markdown(file_obj)
+
+            usellm = True ## replace with valid condition to decide when to use LLM engine
+            if usellm:
+                try:
+                    self.text_layer_engine = GeminiPDFParserEngine()
+                    llm_text = self.text_layer_engine.to_markdown(file_obj)
+                    if llm_text:
+                        md_text = llm_text
+                    else:
+                        logger.warning("LLM engine returned empty text, falling back to text layer engine output.")
+                except Exception as e:
+                    logger.error(f"Failed to parse PDF with LLM engine: {e}")
             return md_text
 
         except Exception as e:
