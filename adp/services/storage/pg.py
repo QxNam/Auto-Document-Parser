@@ -58,3 +58,13 @@ class PGService:
             db.delete(document)
             db.commit()
         return document
+
+    @staticmethod
+    async def update_output_uri(db: Session, document_id: UUID, s3_output_uri: str):
+        """Update s3_output_uri for a document"""
+        document = db.query(DocumentModel).filter(DocumentModel.id == document_id).first()
+        if document:
+            document.s3_output_uri = s3_output_uri
+            db.commit()
+            db.refresh(document)
+        return document
