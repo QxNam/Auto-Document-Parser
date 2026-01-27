@@ -107,6 +107,7 @@ services:
       - ./adp:/app/adp
       - ./tests:/app/tests
       - ./logs:/app/logs
+      - ./saved:/tmp/saved
     restart: always
 
   worker_parse:

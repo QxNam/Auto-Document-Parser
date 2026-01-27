@@ -1,4 +1,5 @@
 from typing import Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -9,6 +10,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_DEFAULT_REGION: Optional[str] = None
     S3_BUCKET_NAME: Optional[str] = None
+    S3_BUCKET_NAME_OUTPUT: Optional[str] = None
 
     POSTGRES_HOST: Optional[str] = None
     POSTGRES_PORT: Optional[int] = 5432
@@ -21,6 +23,8 @@ class Settings(BaseSettings):
     KAFKA_TOPIC_NAME: Optional[str] = "upload"
     KAFKA_CONSUMER_GROUP_ID: Optional[str] = "adp-consumer-group"
 
+    OBSERVER_TARGETS: Optional[list[str]] = ["local", "s3"]
+    LOCAL_SAVED_DIR: Optional[str] = "/tmp/saved"
     API_TIMEOUT_INTERVAL: Optional[int] = 60
     MAX_FILE_SIZE_MB: Optional[int] = 10
     MAX_PAGE_COUNT: Optional[int] = 200
@@ -28,6 +32,13 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     ENGINE: str = "text_layer"  # Options: 'text_layer', 'ocr', 'auto'
 
+    @field_validator("OBSERVER_TARGETS", mode="before")
+    @classmethod
+    def parse_observer_targets(cls, v):
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
+    
     # Pydantic configuration to load environment variables from a .env file
     model_config = SettingsConfigDict(
         env_file=".env", 
