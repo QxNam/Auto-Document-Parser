@@ -20,7 +20,7 @@ async def wait_for_worker_signal(task_id: str, timeout: int) -> dict:
 
 async def _listen_loop(pubsub):
     while True:
-        message = await pubsub.get_message(ignore_subscribe_init=True)
+        message = await pubsub.get_message()
         if message and message['type'] == 'message':
             return json.loads(message['data'])
         await asyncio.sleep(0.2)

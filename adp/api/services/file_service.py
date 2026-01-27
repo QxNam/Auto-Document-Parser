@@ -148,40 +148,6 @@ class FileService:
                 detail="Worker is taking too long. Processing will continue in background."
             )
 
-    # async def parse(self, db: Session, file: bytes, file_name: str, metadata_str: str):
-    #     file_hash = get_file_hash(file)
-    #     existing_doc = await self.pg_instance.get_documents_by_file_hash_status(
-    #         db,
-    #         file_hash=file_hash,
-    #         status=ProcessingStatus.COMPLETED
-    #     )
-    #     if existing_doc:
-    #         # return data in redis with existing_doc.task_id
-    #         logger.info(f"Cache hit: File {file_name} already processed.")
-
-    #     result_msg = await self.send_to_queue(db, file, file_name, metadata_str)
-    #     task_id = result_msg['metadata_id']
-
-    #     try:
-    #         final_result = await wait_for_worker_signal(task_id, timeout=300)
-    #         return final_result
-
-
-    #     except asyncio.TimeoutError:
-    #         raise HTTPException(
-    #             status_code=408, 
-    #             detail="Worker is taking too long. Please check back later."
-    #         )
-
-
-    # async def test_producer(self, message:json={}):
-    #     time_current = int(time.time())
-    #     message.update({"time": time_current})
-    #     status_push = await kafka_service.publish_message_async(topic=KAFKA_TOPIC_NAME, message=message)
-    #     if not status_push:
-    #         raise RuntimeError("[Producer test] Failed to publish message to Kafka.")
-    #     logger.info(f"[Producer test] Message published to Kafka topic {KAFKA_TOPIC_NAME} at time {time_current}.")
-
     def _check_file_size(self, file_content: bytes):
         """
         Checks if the file size is within the allowed limit.
