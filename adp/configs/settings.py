@@ -23,7 +23,8 @@ class Settings(BaseSettings):
     KAFKA_TOPIC_NAME: Optional[str] = "upload"
     KAFKA_CONSUMER_GROUP_ID: Optional[str] = "adp-consumer-group"
 
-    OBSERVER_TARGETS: Optional[list[str]] = ["local", "s3"]
+    REDIS_URL: Optional[str] = "redis://localhost:6379/0"
+    OBSERVER_TARGETS: Optional[list[str]] = ["local", "s3", "cache"]
     LOCAL_SAVED_DIR: Optional[str] = "/tmp/saved"
     API_TIMEOUT_INTERVAL: Optional[int] = 60
     MAX_FILE_SIZE_MB: Optional[int] = 10

@@ -12,7 +12,7 @@ class S3Target(BaseObserver):
     def __init__(self):
         pass
     
-    async def update(self, data: str, file_name: str) -> str:
+    async def update(self, data: str, file_name: str, *args, **kwargs) -> str:
         """
         Asynchronously send data to S3 as a markdown file.
         """

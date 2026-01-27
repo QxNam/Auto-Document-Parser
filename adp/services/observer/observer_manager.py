@@ -27,7 +27,7 @@ class ObserverManager:
             except Exception as e:
                 logger.error(f"[Observer] Failed to init {target_name}: {e}")
 
-    async def send(self, data: str, file_name: str) -> dict:
+    async def send(self, data: str, file_name: str, *args, **kwargs) -> dict:
         """
         Send data to all configured observers asynchronously.
         """
@@ -35,7 +35,7 @@ class ObserverManager:
             logger.warning("[Observer] No observers registered. Skipping send.")
             return {}
 
-        tasks = [observer.update(data, file_name) for observer in self.observers]
+        tasks = [observer.update(data, file_name, *args, **kwargs) for observer in self.observers]
         
         # return_exceptions=True helps ensure one target's failure doesn't crash the whole system
         results = await asyncio.gather(*tasks, return_exceptions=True)

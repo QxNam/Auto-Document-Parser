@@ -6,9 +6,9 @@ from adp.configs.settings import settings
 class LocalTarget(BaseObserver):
     def __init__(self):
         self.local_dir = Path(settings.LOCAL_SAVED_DIR)
-        self.local_dir.mkdir(parents=True, exist_ok=True) # Tự tạo folder nếu chưa có
+        self.local_dir.mkdir(parents=True, exist_ok=True)
 
-    async def update(self, data: str, file_name: str) -> str:
+    async def update(self, data: str, file_name: str, *args, **kwargs) -> str:
         """
         Save data as a markdown file locally.
         """

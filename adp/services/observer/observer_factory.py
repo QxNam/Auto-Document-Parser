@@ -1,10 +1,12 @@
+from adp.services.observer.targets.cache_target import CacheTarget
 from adp.services.observer.targets.local_target import LocalTarget
 from adp.services.observer.targets.s3_target import S3Target
 
 class ObserverFactory:
     _mapping = {
         "local": LocalTarget,
-        "s3": S3Target
+        "s3": S3Target,
+        "cache": CacheTarget
     }
 
     @classmethod

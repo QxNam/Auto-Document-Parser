@@ -24,3 +24,31 @@ class UploadResponse(BaseModel):
                 "file_name": "document.pdf"
             }
         }
+
+
+class DataResponse(BaseModel):
+    """
+    Response model for file data content
+    """
+
+    content: str = Field(..., description="Extracted text or processed content from the document")
+    time_processed: int = Field(..., description="Timestamp when the content was processed in epoch format")
+
+class ViewResponse(BaseModel):
+    """
+    Response model for file upload and view endpoint
+    """
+
+    status: str = Field(..., description="Status of the file processing")
+    data: DataResponse
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "completed",
+                "data": {
+                    "content": "Extracted text from the document goes here...",
+                    "time_processed": 1700000500
+                }
+            }
+        }

@@ -9,6 +9,7 @@ from adp.services.message_queue.kafka_message_queue import kafka_service
 from adp.services.observer.observer_manager import ObserverManager
 from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.pg import PGService
+from adp.services.storage.redis_cache import redis_client
 from adp.services.parse.parse import Parse
 from adp.utils.validator import check as validate_file
 from adp.configs.settings import settings
@@ -50,7 +51,9 @@ class ParseWorker:
             # logger.info(f"Parsed content: {result[:100]}")
             
             # Observer
-            results = await self.observer_manager.send(data=result, file_name=message.file_name)
+            doc = await PGService.get_by_id(db, message.metadata_id)
+            logger.info(f"file_hash: {doc.file_hash}")
+            results = await self.observer_manager.send(data=result, file_name=message.file_name, task_id=message.metadata_id, file_hash=doc.file_hash)
             await PGService.update_output_uri(
                 db=db,
                 document_id=message.metadata_id,
@@ -69,12 +72,21 @@ class ParseWorker:
     async def start(self):
         """Start the worker to consume messages and process tasks."""
         logger.info("=== Parse Worker Starting ===")
-        await self.kafka_service.start_consuming_async(
-            topic=self.topic,
-            group_id=self.group_id,
-            callback=self.process_task,
-        )
+
+        await redis_client.connect()
+
+        try:
+            await self.kafka_service.start_consuming_async(
+                topic=self.topic,
+                group_id=self.group_id,
+                callback=self.process_task,
+            )
+        finally:
+            await redis_client.close()
 
 if __name__ == "__main__":
     worker = ParseWorker()
-    asyncio.run(worker.start())
+    try:
+        asyncio.run(worker.start())
+    except KeyboardInterrupt:
+        logger.info("Worker stopped by user.")
