@@ -8,7 +8,9 @@ import pymupdf4llm
 from adp.services.parse.parse_registry import ParseRegistry
 from adp.services.parse.base_parse import BaseParse
 from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
+from adp.services.parse.engines.llm_engine import GeminiPDFParserEngine
 from adp.configs.logger import worker_logger as logger
+from adp.configs.settings import settings
 
 DEFAULT_DPI = 150
 MAX_INSPECT_PAGES = 50
@@ -22,34 +24,42 @@ TEXT_FLAGS = (
 
 @ParseRegistry.register([".pdf"])
 class PDFParse(BaseParse):
-    """
-    PDF parse
-    """
-
     def __init__(self):
-        self.text_layer_engine = PDFTextLayerEngine()
+        self.local_engine = PDFTextLayerEngine()
+        self.llm_engine = GeminiPDFParserEngine()
 
     def parse(
         self,
         file_obj: io.BytesIO,
-        engine: str = "auto",
+        engine: str = "text_layer",
         output_format: str = "markdown",
     ) -> str:
-        """
-        Parse a PDF (.pdf) file.
-        Args:
-            file_obj (io.BytesIO): The PDF file object to be parsed.
-            engine (str, optional): The parsing engine to use. Defaults to "auto". Options are "auto", "text_layer", "ocr".
-            output_format (str, optional): The desired output format. Defaults to "markdown". Options are "markdown", "plain_text".
-        """
-
         try:
-            doc = fitz.open(stream=file_obj, filetype="pdf")
-            md_text = pymupdf4llm.to_markdown(doc)
+            file_obj.seek(0)
+            
+            md_text = self.local_engine.to_markdown(file_obj)
+
+            is_poor_quality = len(md_text.strip()) < 100 ## should be replaced with better quality check
+            should_use_llm = engine == "auto" and settings.ENGINE == "auto" and is_poor_quality
+
+            if should_use_llm:
+                try:
+                    logger.info(f"Switching to LLM OCR engine (Reason: engine={engine}, poor_quality={is_poor_quality})")
+                    file_obj.seek(0)
+                    llm_text = self.llm_engine.to_markdown(file_obj)
+                    
+                    if llm_text:
+                        md_text = llm_text
+                    else:
+                        logger.warning("LLM engine returned empty text, staying with local output.")
+                except Exception as e:
+                    logger.error(f"Failed to parse PDF with LLM engine: {e}")
+
             return md_text
 
         except Exception as e:
             logger.error(f"Failed to parse PDF: {e}")
+            return ""
 
 
     def _decide_should_ocr_file(

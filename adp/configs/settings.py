@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: Optional[int] = 10
     MAX_PAGE_COUNT: Optional[int] = 200
     ALLOWED_FILE_EXTENSIONS: Optional[str] = ".pdf,.docx,.txt"
+    GEMINI_API_KEY: Optional[str] = None
+    ENGINE: str = "text_layer"  # Options: 'text_layer', 'ocr', 'auto'
 
     # Pydantic configuration to load environment variables from a .env file
     model_config = SettingsConfigDict(
