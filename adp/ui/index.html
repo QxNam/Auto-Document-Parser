@@ -785,7 +785,7 @@
     </div>
 
     <script>
-        const API_ENDPOINT = 'http://localhost:8000/api/v1/view';
+        const API_ENDPOINT = 'http://localhost:8000/api/v1/file/view';
         const MAX_FILE_SIZE_MB = 10;
         let parseHistory = [];
         let currentFile = null;
@@ -1055,7 +1055,7 @@
                 } else {
                     const errorMsg = result.message || 'Unknown error';
                     showStatus('error', `❌ Lỗi: ${errorMsg}`);
-                    displayResult(result);
+                    displayResult(result['data']['content']);
                     addToHistory(currentFile, result, `❌ Lỗi: ${errorMsg}`);
                 }
             } catch (error) {

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, UploadFile, status, HTTPException, File,
 from typing import Dict
 from sqlalchemy.orm import Session
 
-from adp.api.responses.upload import UploadResponse, ViewResponse
+from adp.api.responses.upload import DataResponse, UploadResponse, ViewResponse
 from adp.api.services.file_service import FileService
 from adp.utils.wait_worker import wait_for_worker_signal
 from adp.configs.database import get_db
@@ -51,17 +51,23 @@ async def upload_file(
             detail=f"Unexpected error during file upload: {str(e)}",
         )
     
-@router.post("/view", status_code=status.HTTP_200_OK)
+@router.post("/view", response_model=ViewResponse, status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
 async def view_file(
     request: Request,
     file: UploadFile = File(...),
     metadata: str = File(""),
     db: Session = Depends(get_db)
-):
+) -> ViewResponse:
     try:
         result: Dict[str, str] = await file_service.parse(db, await file.read(), file.filename, metadata)
-        return result #UploadResponse(**result)
+        return ViewResponse(
+            status="success",
+            data=DataResponse(
+                content=result.get("content"),
+                time_processed=int(result.get("time_completed"))
+            )
+        )
 
     except HTTPException:
         raise
