@@ -238,4 +238,4 @@ saved/
 *.jpg
 *.jpeg
 *.gif
-
+.DS_Store
