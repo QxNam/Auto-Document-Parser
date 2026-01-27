@@ -1,14 +1,15 @@
 import asyncio
 import os
-import io
-from datetime import datetime
 from time import time
+
+from anyio import Path
 
 from adp.services.data_source.S3 import S3DataSource
 from adp.services.message_queue.kafka_message_queue import kafka_service
+from adp.services.observer.observer_manager import ObserverManager
 from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.pg import PGService
-from adp.services.storage.s3 import s3_service
+from adp.services.storage.redis_cache import redis_client
 from adp.services.parse.parse import Parse
 from adp.utils.validator import check as validate_file
 from adp.configs.settings import settings
@@ -25,6 +26,7 @@ class ParseWorker:
         self.group_id = KAFKA_CONSUMER_GROUP_ID
         self.parse = Parse()
         self.s3_pull_service = S3DataSource()
+        self.observer_manager = ObserverManager()
 
     async def process_task(self, msg_body: dict):
         """Logic to process actual file parsing"""
@@ -39,7 +41,6 @@ class ParseWorker:
         await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.PROCESSING)
         
         try:
-            
             validate_file_result = validate_file(file_obj=file_obj, file_name=message.file_name)
             if not validate_file_result:
                 logger.warning(f"File validation failed for file: {message.file_name} (ID: {message.metadata_id})")
@@ -47,34 +48,17 @@ class ParseWorker:
                 return
 
             result = self.parse.parse(file_obj=file_obj, file_name=message.file_name)
-            logger.info(f"Parsed content: {result[:100]}")
+            # logger.info(f"Parsed content: {result[:100]}")
             
-            # create s3 object key
-            date_prefix = datetime.now().strftime("%Y/%m/%d")
-            object_key = f"outputs/{date_prefix}/{message.metadata_id}.md"
-            
-            # Convert markdown string to BytesIO
-            md_file_obj = io.BytesIO(result.encode('utf-8'))
-            
-            # Upload markdown to S3
-            upload_result = s3_service.upload_fileobj(
-                file_obj=md_file_obj,
-                bucket_name=settings.S3_BUCKET_NAME,  # hoặc None nếu đã có default
-                object_key=object_key,
-                extra_args={'ContentType': 'text/markdown'}
-            )
-            
-            s3_output_uri = upload_result['uri']
-            logger.info(f"✅ Uploaded markdown to S3: {s3_output_uri}")
-            
-            # Update database with output URI
+            # Observer
+            doc = await PGService.get_by_id(db, message.metadata_id)
+            logger.info(f"file_hash: {doc.file_hash}")
+            results = await self.observer_manager.send(data=result, file_name=message.file_name, task_id=message.metadata_id, file_hash=doc.file_hash)
             await PGService.update_output_uri(
                 db=db,
                 document_id=message.metadata_id,
-                s3_output_uri=s3_output_uri
+                s3_output_uri=results.get("s3")
             )
-            
-            logger.info(f"💾 Updated database with output URI: {s3_output_uri}")
             
             await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.COMPLETED)
             logger.info(f"✅ Finished at {time()}")
@@ -88,12 +72,21 @@ class ParseWorker:
     async def start(self):
         """Start the worker to consume messages and process tasks."""
         logger.info("=== Parse Worker Starting ===")
-        await self.kafka_service.start_consuming_async(
-            topic=self.topic,
-            group_id=self.group_id,
-            callback=self.process_task,
-        )
+
+        await redis_client.connect()
+
+        try:
+            await self.kafka_service.start_consuming_async(
+                topic=self.topic,
+                group_id=self.group_id,
+                callback=self.process_task,
+            )
+        finally:
+            await redis_client.close()
 
 if __name__ == "__main__":
     worker = ParseWorker()
-    asyncio.run(worker.start())
+    try:
+        asyncio.run(worker.start())
+    except KeyboardInterrupt:
+        logger.info("Worker stopped by user.")

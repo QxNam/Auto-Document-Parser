@@ -221,7 +221,6 @@ venv*
 
 # --- IGNORE ---
 
-local*
 .ruff_cache
 
 weights/
@@ -238,4 +237,4 @@ saved/
 *.jpg
 *.jpeg
 *.gif
-
+.DS_Store

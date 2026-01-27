@@ -1,9 +1,11 @@
+import asyncio
 from fastapi import APIRouter, Request, UploadFile, status, HTTPException, File, Depends
 from typing import Dict
 from sqlalchemy.orm import Session
 
-from adp.api.responses.upload import UploadResponse
+from adp.api.responses.upload import DataResponse, UploadResponse, ViewResponse
 from adp.api.services.file_service import FileService
+from adp.utils.wait_worker import wait_for_worker_signal
 from adp.configs.database import get_db
 from adp.configs.settings import settings
 from adp.api.middleware.rate_limit import limiter
@@ -48,36 +50,24 @@ async def upload_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error during file upload: {str(e)}",
         )
-
-# @router.post("/test-producer", status_code=status.HTTP_200_OK)
-# async def test_producer(
-#     message: Dict = {"data": "1"},
-# ) -> Dict:
-#     """
-#     Test Kafka Producer by sending a test message.
-#     """
-#     try:
-#         await file_service.test_producer(message)
-#         return {"status": "Message sent to Kafka successfully."}
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=f"Unexpected error during test producer: {str(e)}",
-#         )
-
-@router.post("/get-db", status_code=status.HTTP_200_OK)
-async def test_db(
-    file: UploadFile = File(..., description="File to be uploaded and processed"),
-    metadata: str = File("", description="Optional metadata in JSON string format"),
+    
+@router.post("/view", response_model=ViewResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
+async def view_file(
+    request: Request,
+    file: UploadFile = File(...),
+    metadata: str = File(""),
     db: Session = Depends(get_db)
-):
-    """
-    Uploads a file to parser processing.
-    """
+) -> ViewResponse:
     try:
-        result = await file_service._check_file_exist(file.filename, await file.read(), db)
-        return result
+        result: Dict[str, str] = await file_service.parse(db, await file.read(), file.filename, metadata)
+        return ViewResponse(
+            status="success",
+            data=DataResponse(
+                content=result.get("content"),
+                time_processed=int(result.get("time_completed"))
+            )
+        )
 
     except HTTPException:
         raise

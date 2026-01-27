@@ -1,21 +1,28 @@
+import asyncio
 import io
 import time
 import json
 import hashlib
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from adp.api.responses.upload import ViewResponse
 from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.s3 import s3_service
+from adp.services.storage.redis_cache import redis_client
 from adp.services.storage.pg import PGService
 from adp.api.exception import exc
 from adp.services.message_queue.kafka_message_queue import kafka_service
 from adp.configs.settings import settings
 from adp.configs.logger import api_logger as logger
+from adp.utils.helpers import get_file_hash
+from adp.utils.wait_worker import wait_for_worker_signal
 
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 
 class FileService:
     def __init__(self):
+        self.file_hash = None
         self.pg_instance = PGService()
 
     async def send_to_queue(self, db: Session, file: bytes, file_name: str, metadata_str: str):
@@ -30,6 +37,7 @@ class FileService:
             file_obj = io.BytesIO(file)
             file_size = len(file)
             content_type = file_name.split(".")[-1]
+
 
             # Step 1: Validate file
             self._check_file_size(file)
@@ -61,7 +69,7 @@ class FileService:
                 "s3_uri": s3_uri,
                 "file_name": file_name,
                 "file_size": file_size,
-                "file_hash": hashlib.sha256(file).hexdigest(),
+                "file_hash": self.file_hash,
                 "content_type": content_type,
                 "status": "pending",
                 "metadata_info": metadata
@@ -94,17 +102,51 @@ class FileService:
         except Exception as e:
             logger.error(f"Error in send_to_queue: {e}", exc_info=True)
             raise e
+        
+    async def parse(self, db: Session, file: bytes, file_name: str, metadata_str: str):
+        # Tính hash ngay tại cửa ngõ
+        file_hash = hashlib.sha256(file).hexdigest()
+        self.file_hash = file_hash # Lưu vào instance để dùng cho Step 3 bên dưới
 
-    # async def parse(self, file_content: bytes):
-    #     pass
+        # --- BƯỚC 1: KIỂM TRA REDIS (FASTEST) ---
+        cache_key = f"cache:file:{file_hash}"
+        cached_result = await redis_client.get(cache_key)
+        if cached_result:
+            logger.info(f"Redis Cache hit: {file_name}")
+            return json.loads(cached_result)
 
-    # async def test_producer(self, message:json={}):
-    #     time_current = int(time.time())
-    #     message.update({"time": time_current})
-    #     status_push = await kafka_service.publish_message_async(topic=KAFKA_TOPIC_NAME, message=message)
-    #     if not status_push:
-    #         raise RuntimeError("[Producer test] Failed to publish message to Kafka.")
-    #     logger.info(f"[Producer test] Message published to Kafka topic {KAFKA_TOPIC_NAME} at time {time_current}.")
+        # --- BƯỚC 2: KIỂM TRA DB (DATABASE FALLBACK) ---
+        existing_doc = await self.pg_instance.get_documents_by_file_hash_status(
+            db,
+            file_hash=file_hash,
+            status=ProcessingStatus.COMPLETED
+        )
+        if existing_doc:
+            logger.info(f"DB Cache hit: {file_name}")
+            result = {
+                "metadata_id": str(existing_doc.id),
+                "s3_uri": existing_doc.s3_output_uri, # Trả về file đã xử lý
+                "status": existing_doc.status,
+                "file_name": existing_doc.file_name
+            }
+            # Tiện tay cập nhật ngược lại Redis để lần sau nhanh hơn
+            await redis_client.set(cache_key, result, ex=86400)
+            return result
+
+        # --- BƯỚC 3: GỬI VÀO QUEUE & CHỜ SIGNAL ---
+        result_msg = await self.send_to_queue(db, file, file_name, metadata_str)
+        task_id = result_msg['metadata_id']
+
+        try:
+            # Chờ Worker báo tin qua Redis Pub/Sub
+            final_result = await wait_for_worker_signal(task_id, timeout=300)
+            return final_result
+
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=408, 
+                detail="Worker is taking too long. Processing will continue in background."
+            )
 
     def _check_file_size(self, file_content: bytes):
         """
@@ -136,26 +178,17 @@ class FileService:
         """
         Checks if a file with the same hash already exists in the database.
         """
-        # document_exist_by_file_name = self.pg_instance.get_document_by_file_name(db, file_name=file_name)
-
-
         documents = await self.pg_instance.get_documents_by_file_name(db, file_name=file_name)
         if not documents:
+            self.file_hash = get_file_hash(file)
             return False
         
         for doc in documents:
             if doc.file_size == len(file):
                 return True
             
-            file_hash = hashlib.sha256(file).hexdigest()
-            if doc.file_hash == file_hash:
+            self.file_hash = get_file_hash(file)
+            if doc.file_hash == self.file_hash:
                 return True
         
         return False
-
-        # file_hash = hashlib.sha256(file_obj).hexdigest()
-        # pg_service = PGService()
-        # existing_doc = pg_service.get_document_by_hash(db, file_hash=file_hash)
-        
-        # if existing_doc:
-        #     raise ValueError(f"A file with the same content already exists with ID {existing_doc.id}.")

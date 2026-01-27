@@ -1,4 +1,19 @@
 services:
+
+  redis:
+    container_name: cache_redis
+    image: redis:7.2-bookworm
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
     container_name: metadata_db
     image: postgres:17.7-trixie
@@ -10,6 +25,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-adp}
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     restart: always
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-admin}"]
@@ -107,6 +124,7 @@ services:
       - ./adp:/app/adp
       - ./tests:/app/tests
       - ./logs:/app/logs
+      - ./saved:/tmp/saved
     restart: always
 
   worker_parse:
@@ -190,3 +208,7 @@ services:
 volumes:
   kafka-data:
     name: kafka-data
+  redis-data:
+    name: redis-data
+  postgres-data:
+    name: postgres-data

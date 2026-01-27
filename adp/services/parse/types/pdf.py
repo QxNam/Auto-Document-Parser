@@ -39,21 +39,21 @@ class PDFParse(BaseParse):
             
             md_text = self.local_engine.to_markdown(file_obj)
 
-            is_poor_quality = len(md_text.strip()) < 100 ## should be replaced with better quality check
-            should_use_llm = engine == "auto" and settings.ENGINE == "auto" and is_poor_quality
+            # is_poor_quality = len(md_text.strip()) < 100 ## should be replaced with better quality check
+            # should_use_llm = engine == "auto" and settings.ENGINE == "auto" and is_poor_quality
 
-            if should_use_llm:
-                try:
-                    logger.info(f"Switching to LLM OCR engine (Reason: engine={engine}, poor_quality={is_poor_quality})")
-                    file_obj.seek(0)
-                    llm_text = self.llm_engine.to_markdown(file_obj)
+            # if should_use_llm:
+            #     try:
+            #         logger.info(f"Switching to LLM OCR engine (Reason: engine={engine}, poor_quality={is_poor_quality})")
+            #         file_obj.seek(0)
+            #         llm_text = self.llm_engine.to_markdown(file_obj)
                     
-                    if llm_text:
-                        md_text = llm_text
-                    else:
-                        logger.warning("LLM engine returned empty text, staying with local output.")
-                except Exception as e:
-                    logger.error(f"Failed to parse PDF with LLM engine: {e}")
+            #         if llm_text:
+            #             md_text = llm_text
+            #         else:
+            #             logger.warning("LLM engine returned empty text, staying with local output.")
+            #     except Exception as e:
+            #         logger.error(f"Failed to parse PDF with LLM engine: {e}")
 
             return md_text
 
