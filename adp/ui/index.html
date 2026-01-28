@@ -8,6 +8,7 @@
     <!-- Libraries for Office file preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -280,23 +281,26 @@
 
         .preview-section {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 24px;
             margin-top: 20px;
         }
 
-        .preview-box, .result-box {
+        
+
+
+        .preview-box, .result-box, .content-box {
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 24px;
             background: #fafbfc;
-            min-height: 500px;
-            max-height: 650px;
             display: flex;
             flex-direction: column;
+            width: 100%;
+            min-width: 0; /* Important for flex items to shrink */
         }
 
-        .preview-box h3, .result-box h3 {
+        .preview-box h3, .result-box h3, .content-box h3 {
             margin-bottom: 18px;
             color: #1e293b;
             font-size: 1.3em;
@@ -307,7 +311,7 @@
             flex-shrink: 0;
         }
 
-        .preview-box h3 i, .result-box h3 i {
+        .preview-box h3 i, .result-box h3 i, .content-box h3 i {
             color: #6366f1;
         }
 
@@ -319,6 +323,7 @@
             background: white;
             overflow: auto;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            max-width: 100%;
         }
 
         #filePreview img, #historyPreview img {
@@ -329,7 +334,7 @@
 
         #filePreview iframe, #historyPreview iframe {
             width: 100%;
-            height: 500px;
+            height: 800px;
             border: none;
         }
 
@@ -356,6 +361,7 @@
             font-size: 0.9em;
             line-height: 1.6;
             box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            max-width: 100%;
         }
 
         .result-json pre {
@@ -363,6 +369,8 @@
             background: transparent;
             padding: 0;
             margin: 0;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-break: break-all;
         }
 
         .history-list {
@@ -553,6 +561,7 @@
             background: white;
             padding: 15px;
             border-radius: 8px;
+            max-width: 100%;
         }
 
         .excel-preview table {
@@ -656,6 +665,103 @@
             color: white;
             border-color: #6366f1;
         }
+
+        .markdown-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto; /* Handle overflow internally */
+            max-height: 800px;
+            line-height: 1.6;
+            color: #334155;
+            width: 100%; /* Force width constraints */
+            max-width: 100%;
+            overflow-wrap: break-word; /* Ensure clear text wrapping */
+            word-wrap: break-word;
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .markdown-content table {
+            display: block; /* Make table responsive */
+            width: 100%;
+            overflow-x: auto;
+            border-collapse: collapse;
+            margin-bottom: 1.5em;
+        }
+
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            color: #1e293b;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1em;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 1em;
+            padding-left: 1.5em;
+        }
+
+        .markdown-content code {
+            background: #f1f5f9;
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #ef4444;
+        }
+
+        .markdown-content pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 1.5em;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5em;
+        }
+
+        .markdown-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: 0.9em;
+        }
+        
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5em;
+        }
+        
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .markdown-content th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #6366f1;
+            padding-left: 1em;
+            margin-left: 0;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .result-box{
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -735,11 +841,21 @@
                 </div>
 
                 <div class="result-box">
-                    <h3><i class="fas fa-code"></i> Kết quả Parse</h3>
+                    <h3><i class="fas fa-code"></i> Raw JSON Result</h3>
                     <div id="resultJson" class="result-json">
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
                             <p>Chưa có kết quả...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-box">
+                    <h3><i class="fas fa-file-invoice"></i> Extracted Content (Markdown)</h3>
+                    <div id="resultContent" class="markdown-content">
+                        <div class="empty-state">
+                            <i class="fas fa-align-left"></i>
+                            <p>Content sẽ hiển thị ở đây...</p>
                         </div>
                     </div>
                 </div>
@@ -774,6 +890,16 @@
                     <h3><i class="fas fa-code"></i> Kết quả Parse</h3>
                     <div id="historyStatus" class="status-box info" style="display: none;"></div>
                     <div id="historyResult" class="result-json">
+                        <div class="empty-state">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Chọn một item từ lịch sử...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-box">
+                    <h3><i class="fas fa-file-invoice"></i> Extracted Content</h3>
+                    <div id="historyContent" class="markdown-content">
                         <div class="empty-state">
                             <i class="fas fa-hand-pointer"></i>
                             <p>Chọn một item từ lịch sử...</p>
@@ -906,12 +1032,12 @@
                 reader.readAsDataURL(file);
             } else if (ext === 'pdf') {
                 reader.onload = function(e) {
-                    preview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 500px; border: none;"></iframe>`;
+                    preview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 800px; border: none;"></iframe>`;
                 };
                 reader.readAsDataURL(file);
             } else if (ext === 'txt') {
                 reader.onload = function(e) {
-                    preview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 500px;">${escapeHtml(e.target.result)}</pre>`;
+                    preview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 800px;">${escapeHtml(e.target.result)}</pre>`;
                 };
                 reader.readAsText(file);
             } else if (['docx', 'doc'].includes(ext)) {
@@ -1069,7 +1195,22 @@
         // Display JSON result
         function displayResult(result) {
             const resultDiv = document.getElementById('resultJson');
+            const contentDiv = document.getElementById('resultContent');
+            
+            // Display JSON
             resultDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            
+            // Display Content
+            if (result.data && result.data.content) {
+                contentDiv.innerHTML = marked.parse(result.data.content);
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Không tìm thấy content trong kết quả trả về</p>
+                    </div>
+                `;
+            }
         }
 
         // Show status message
@@ -1179,12 +1320,12 @@
                     reader.readAsDataURL(item.file);
                 } else if (ext === 'pdf') {
                     reader.onload = function(e) {
-                        historyPreview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 500px; border: none;"></iframe>`;
+                        historyPreview.innerHTML = `<iframe src="${e.target.result}" type="application/pdf" style="width: 100%; height: 800px; border: none;"></iframe>`;
                     };
                     reader.readAsDataURL(item.file);
                 } else if (ext === 'txt') {
                     reader.onload = function(e) {
-                        historyPreview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 500px;">${escapeHtml(e.target.result)}</pre>`;
+                        historyPreview.innerHTML = `<pre style="padding: 20px; background: #f8fafc; border-radius: 8px; overflow: auto; max-height: 800px;">${escapeHtml(e.target.result)}</pre>`;
                     };
                     reader.readAsText(item.file);
                 } else if (['docx', 'doc'].includes(ext)) {
@@ -1275,6 +1416,19 @@
             // Show result
             const historyResult = document.getElementById('historyResult');
             historyResult.innerHTML = `<pre>${JSON.stringify(item.result, null, 2)}</pre>`;
+            
+            // Show content
+            const historyContent = document.getElementById('historyContent');
+             if (item.result && item.result.data && item.result.data.content) {
+                historyContent.innerHTML = marked.parse(item.result.data.content);
+            } else {
+                historyContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Không có content</p>
+                    </div>
+                `;
+            }
         }
 
         // Utility function to escape HTML
