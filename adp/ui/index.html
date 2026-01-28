@@ -281,26 +281,80 @@
 
         .preview-section {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 24px;
             margin-top: 20px;
+            align-items: start;
         }
 
-        
+        @media (max-width: 1024px) {
+            .preview-section {
+                grid-template-columns: 1fr;
+            }
+        }
 
+        .preview-box, .result-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-        .preview-box, .result-box, .content-box {
+        .preview-box {
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 24px;
             background: #fafbfc;
+            min-height: 600px;
+        }
+        
+        .result-tabs-header {
             display: flex;
-            flex-direction: column;
-            width: 100%;
-            min-width: 0; /* Important for flex items to shrink */
+            gap: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 2px;
         }
 
-        .preview-box h3, .result-box h3, .content-box h3 {
+        .result-tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -4px;
+            transition: all 0.3s;
+        }
+
+        .result-tab-btn:hover {
+            color: #6366f1;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 6px 6px 0 0;
+        }
+
+        .result-tab-btn.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+
+        .result-content {
+            display: none;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            background: #fafbfc;
+            min-height: 550px;
+            max-height: 800px;
+            flex-direction: column;
+        }
+
+        .result-content.active {
+            display: flex;
+        }
+
+        .preview-box h3, .result-box h3 {
             margin-bottom: 18px;
             color: #1e293b;
             font-size: 1.3em;
@@ -311,7 +365,7 @@
             flex-shrink: 0;
         }
 
-        .preview-box h3 i, .result-box h3 i, .content-box h3 i {
+        .preview-box h3 i, .result-box h3 i {
             color: #6366f1;
         }
 
@@ -323,7 +377,6 @@
             background: white;
             overflow: auto;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            max-width: 100%;
         }
 
         #filePreview img, #historyPreview img {
@@ -361,7 +414,6 @@
             font-size: 0.9em;
             line-height: 1.6;
             box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
-            max-width: 100%;
         }
 
         .result-json pre {
@@ -369,8 +421,6 @@
             background: transparent;
             padding: 0;
             margin: 0;
-            white-space: pre-wrap; /* Wrap long lines */
-            word-break: break-all;
         }
 
         .history-list {
@@ -561,7 +611,6 @@
             background: white;
             padding: 15px;
             border-radius: 8px;
-            max-width: 100%;
         }
 
         .excel-preview table {
@@ -666,18 +715,22 @@
             border-color: #6366f1;
         }
 
-        .markdown-content {
+        /* Markdown Styling */
+        .markdown-wrapper {
             background: white;
-            padding: 30px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
-            overflow-x: auto; /* Handle overflow internally */
-            max-height: 800px;
+            padding: 20px;
+            overflow: auto;
+            flex: 1;
+        }
+
+        .markdown-content {
             line-height: 1.6;
             color: #334155;
-            width: 100%; /* Force width constraints */
+            width: 100%;
             max-width: 100%;
-            overflow-wrap: break-word; /* Ensure clear text wrapping */
+            overflow-wrap: break-word;
             word-wrap: break-word;
         }
 
@@ -687,35 +740,22 @@
         }
 
         .markdown-content table {
-            display: block; /* Make table responsive */
+            display: block;
             width: 100%;
             overflow-x: auto;
             border-collapse: collapse;
             margin-bottom: 1.5em;
         }
 
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-            margin-top: 1.5em;
-            margin-bottom: 0.8em;
-            color: #1e293b;
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
         }
 
-        .markdown-content p {
-            margin-bottom: 1em;
-        }
-
-        .markdown-content ul, .markdown-content ol {
-            margin-bottom: 1em;
-            padding-left: 1.5em;
-        }
-
-        .markdown-content code {
-            background: #f1f5f9;
-            padding: 0.2em 0.4em;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9em;
-            color: #ef4444;
+        .markdown-content th {
+            background: #f8fafc;
+            font-weight: 600;
         }
 
         .markdown-content pre {
@@ -724,43 +764,14 @@
             padding: 1.5em;
             border-radius: 8px;
             overflow-x: auto;
-            margin-bottom: 1.5em;
         }
 
-        .markdown-content pre code {
-            background: transparent;
-            color: inherit;
-            padding: 0;
-            font-size: 0.9em;
-        }
-        
-        .markdown-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5em;
-        }
-        
-        .markdown-content th, .markdown-content td {
-            border: 1px solid #e2e8f0;
-            padding: 10px;
-            text-align: left;
-        }
-        
-        .markdown-content th {
-            background: #f8fafc;
-            font-weight: 600;
-        }
-        
         .markdown-content blockquote {
             border-left: 4px solid #6366f1;
             padding-left: 1em;
             margin-left: 0;
             color: #64748b;
             font-style: italic;
-        }
-
-        .result-box{
-            display: none;
         }
     </style>
 </head>
@@ -831,31 +842,44 @@
             <div class="preview-section">
                 <div class="preview-box">
                     <h3><i class="fas fa-eye"></i> Preview File</h3>
-                    <div id="fileInfo" class="file-info" style="display: none;"></div>
                     <div id="filePreview">
                         <div class="empty-state">
                             <i class="fas fa-file"></i>
                             <p>Upload file để xem preview</p>
                         </div>
                     </div>
+                    <div id="fileInfo" class="file-info" style="display: none;"></div>
                 </div>
 
-                <div class="result-box">
-                    <h3><i class="fas fa-code"></i> Raw JSON Result</h3>
-                    <div id="resultJson" class="result-json">
-                        <div class="empty-state">
-                            <i class="fas fa-inbox"></i>
-                            <p>Chưa có kết quả...</p>
+                <div class="result-container">
+                    <div class="result-tabs-header">
+                        <button class="result-tab-btn active" onclick="switchResultTab('json', 'parse')">
+                            <i class="fas fa-code"></i> JSON Result
+                        </button>
+                        <button class="result-tab-btn" onclick="switchResultTab('markdown', 'parse')">
+                            <i class="fas fa-file-invoice"></i> Extracted Content
+                        </button>
+                    </div>
+
+                    <!-- JSON View -->
+                    <div id="parse-json-view" class="result-content active">
+                        <div id="resultJson" class="result-json">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>Chưa có kết quả...</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="content-box">
-                    <h3><i class="fas fa-file-invoice"></i> Extracted Content (Markdown)</h3>
-                    <div id="resultContent" class="markdown-content">
-                        <div class="empty-state">
-                            <i class="fas fa-align-left"></i>
-                            <p>Content sẽ hiển thị ở đây...</p>
+                    <!-- Markdown View -->
+                    <div id="parse-markdown-view" class="result-content">
+                        <div class="markdown-wrapper">
+                            <div id="resultContent" class="markdown-content">
+                                <div class="empty-state">
+                                    <i class="fas fa-align-left"></i>
+                                    <p>Content sẽ hiển thị ở đây...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -886,23 +910,37 @@
                     </div>
                 </div>
 
-                <div class="result-box">
-                    <h3><i class="fas fa-code"></i> Kết quả Parse</h3>
-                    <div id="historyStatus" class="status-box info" style="display: none;"></div>
-                    <div id="historyResult" class="result-json">
-                        <div class="empty-state">
-                            <i class="fas fa-hand-pointer"></i>
-                            <p>Chọn một item từ lịch sử...</p>
+                <div class="result-container">
+                    <div class="result-tabs-header">
+                        <button class="result-tab-btn active" onclick="switchResultTab('json', 'history')">
+                            <i class="fas fa-code"></i> JSON Result
+                        </button>
+                        <button class="result-tab-btn" onclick="switchResultTab('markdown', 'history')">
+                            <i class="fas fa-file-invoice"></i> Extracted Content
+                        </button>
+                    </div>
+
+                    <div id="historyStatus" class="status-box info" style="display: none; margin-bottom: 0;"></div>
+
+                    <!-- History JSON View -->
+                    <div id="history-json-view" class="result-content active">
+                        <div id="historyResult" class="result-json">
+                            <div class="empty-state">
+                                <i class="fas fa-hand-pointer"></i>
+                                <p>Chọn một item từ lịch sử...</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="content-box">
-                    <h3><i class="fas fa-file-invoice"></i> Extracted Content</h3>
-                    <div id="historyContent" class="markdown-content">
-                        <div class="empty-state">
-                            <i class="fas fa-hand-pointer"></i>
-                            <p>Chọn một item từ lịch sử...</p>
+                    <!-- History Markdown View -->
+                    <div id="history-markdown-view" class="result-content">
+                        <div class="markdown-wrapper">
+                            <div id="historyContent" class="markdown-content">
+                                <div class="empty-state">
+                                    <i class="fas fa-hand-pointer"></i>
+                                    <p>Chọn một item từ lịch sử...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -964,6 +1002,33 @@
             } else {
                 document.querySelector('.tab:nth-child(2)').classList.add('active');
                 document.getElementById('historyTab').classList.add('active');
+            }
+        }
+
+        // Switch result tabs (JSON vs Markdown)
+        function switchResultTab(type, context) {
+            const prefix = context === 'parse' ? 'parse' : 'history'; // context: 'parse' or 'history'
+            
+            // Update buttons
+            const container = context === 'parse' ? document.getElementById('parseTab') : document.getElementById('historyTab');
+            const btns = container.querySelectorAll('.result-tab-btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+            
+            // Find the clicked button based on text/icon (simple traversing) or index. 
+            // Simplifying: Assume index 0 is JSON, 1 is Markdown
+            if (type === 'json') btns[0].classList.add('active');
+            else btns[1].classList.add('active');
+
+            // Toggle Content
+            const jsonView = document.getElementById(`${prefix}-json-view`);
+            const mdView = document.getElementById(`${prefix}-markdown-view`);
+
+            if (type === 'json') {
+                jsonView.classList.add('active');
+                mdView.classList.remove('active');
+            } else {
+                jsonView.classList.remove('active');
+                mdView.classList.add('active');
             }
         }
 
@@ -1200,14 +1265,16 @@
             // Display JSON
             resultDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
             
-            // Display Content
-            if (result.data && result.data.content) {
+            // Render Markdown
+             if (result.data && result.data.content) {
                 contentDiv.innerHTML = marked.parse(result.data.content);
+                // Switch to markdown tab automatically for convenience
+                switchResultTab('markdown', 'parse');
             } else {
                 contentDiv.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <p>Không tìm thấy content trong kết quả trả về</p>
+                        <p>Không tìm thấy content</p>
                     </div>
                 `;
             }
