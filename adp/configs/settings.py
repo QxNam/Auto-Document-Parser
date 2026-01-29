@@ -30,8 +30,13 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: Optional[int] = 10
     MAX_PAGE_COUNT: Optional[int] = 200
     ALLOWED_FILE_EXTENSIONS: Optional[str] = ".pdf,.docx,.txt"
+    
+    TESSDATA_PREFIX: Optional[str] = "./weights/tessdata"
+    ARTIFACTS_PATH: Optional[str] = "./weights/models_docling"
+    PAGE_BREAK_STR: Optional[str] = "\n--- Page break ---\n"
+
     GEMINI_API_KEY: Optional[str] = None
-    ENGINE: str = "text_layer"  # Options: 'text_layer', 'ocr', 'auto'
+    OCR_ENGINE: str = "auto"  # Options: 'text_layer', 'ocr', 'auto'
 
     @field_validator("OBSERVER_TARGETS", mode="before")
     @classmethod

@@ -3,15 +3,16 @@ from google import genai
 from google.genai import types
 from adp.configs.settings import settings
 from adp.configs.logger import worker_logger as logger
+from adp.services.parse.engines.prompts.pdf2markdown import PROMPT
 
-class GeminiPDFParserEngine:
+class LLMParseEngine:
     def __init__(self, model: str = "gemini-2.5-flash"):
-        if not settings.GEMINI_API_KEY:
-            logger.error("GEMINI_API_KEY is missing from environment variables!")
-            
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = model
-
+        if settings.GEMINI_API_KEY:
+            self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            self.model = model
+        else:
+            logger.warning("GEMINI_API_KEY is missing from environment variables!")
+        
     def to_markdown(self, file_obj: io.BytesIO) -> str:
         file_obj.seek(0)
         pdf_bytes = file_obj.read()
@@ -21,14 +22,6 @@ class GeminiPDFParserEngine:
             return ""
 
         # English Prompt for better structural adherence
-        prompt = (
-            "Extract the content of this PDF into high-quality Markdown format.\n"
-            "- Maintain all hierarchical structures (headings, subheadings, lists).\n"
-            "- Convert tables to standard Markdown tables. If a table is too complex or wide, "
-            "represent it as a CSV within a code block.\n"
-            "- Preserve the original reading order across pages.\n"
-            "- Do not include any conversational preamble or comments, output ONLY the markdown content."
-        )
 
         try:
             contents = [
@@ -36,7 +29,7 @@ class GeminiPDFParserEngine:
                     data=pdf_bytes,
                     mime_type="application/pdf",
                 ),
-                prompt
+                PROMPT
             ]
 
             logger.info(f"Sending request to Gemini model: {self.model}")

@@ -52,3 +52,4 @@ Compliance/Legal|Phòng Pháp chế & Tuân thủ|Đảm bảo việc trích xu�
 - Lợi ích (Benefits):
     * Hữu hình: Giảm 50 nhân sự nhập liệu thủ công, tiết kiệm ~ $300,000/năm. Loại bỏ rủi ro bồi thường do sai sót dữ liệu.
     * Vô hình: Tăng tốc độ phục vụ khách hàng (Customer Experience), tạo kho dữ liệu Markdown chuẩn hóa giúp các mô hình AI/RAG của ngân hàng thông minh hơn, hỗ trợ ra quyết định tín dụng chính xác.
+    

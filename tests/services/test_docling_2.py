@@ -72,19 +72,19 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
-    TesseractOcrOptions,
+    TesseractCliOcrOptions,
     AcceleratorDevice,
     AcceleratorOptions,
 )
-os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata" #"./weights/tessdata" # "
+os.environ["TESSDATA_PREFIX"] = "./weights/tessdata" # "/usr/share/tesseract-ocr/5/tessdata"
 DOCLING_MODEL_PATH = "./weights/models_docling"
 
 def docling_process_cpu(path: str) -> str:
-    """Chạy Docling OCR sử dụng CPU để kiểm chứng tốc độ."""
+    """Chạy Docling OCR sử dụng Tesseract CLI để tối ưu độ ổn định trong Docker."""
     
     # 1. Cấu hình thiết bị sử dụng CPU
     accelerator_options = AcceleratorOptions(
-        num_threads= 4,
+        num_threads=4,
         device=AcceleratorDevice.CPU
     )
 
@@ -94,10 +94,12 @@ def docling_process_cpu(path: str) -> str:
     pipeline_options.do_table_structure = True
     pipeline_options.artifacts_path = DOCLING_MODEL_PATH
     
-    # 2. Cấu hình Tesseract (Tối ưu nhất cho CPU)
-    pipeline_options.ocr_options = TesseractOcrOptions(
+    # 2. Cấu hình Tesseract CLI
+    # TesseractCliOcrOptions sẽ gọi trực tiếp lệnh 'tesseract' từ hệ thống
+    pipeline_options.ocr_options = TesseractCliOcrOptions(
         force_full_page_ocr=True,
-        lang=["vie", "eng"]
+        lang=["vie", "eng"],
+        # path_to_tesseract="tesseract" # Mặc định là "tesseract", nếu bạn cài ở chỗ lạ thì điền vào đây
     )
 
     pipeline_options.accelerator_options = accelerator_options
@@ -116,23 +118,9 @@ def docling_process_cpu(path: str) -> str:
             stream=io.BytesIO(f.read())
         )
         conv_result = doc_converter.convert(docs)
-    # 4. TRÍCH XUẤT SCORE REPORT (Từ page_preds)
-    # print(f"{'Trang':<5} | {'OCR Score':<10} | {'Layout Score':<12} | {'Table Score':<10}")
-    # print("-" * 50)
-    
-    # for i, pred in enumerate(conv_result.page_preds):
-    #     scores = pred.confidence_score
-        
-    #     # Lấy các chỉ số từ PageConfidenceScores
-    #     ocr = scores.ocr_score if not hasattr(scores.ocr_score, "nan") else 0.0
-    #     layout = scores.layout_score
-    #     table = scores.table_score
-        
-    #     print(f"{i+1:<5} | {ocr:<10.4f} | {layout:<12.4f} | {table:<10.4f}")
-        
-    result = conv_result.document.export_to_markdown(
-        page_break_placeholder="<PAGE_BREAK>"
-    )
+        result = conv_result.document.export_to_markdown(
+            page_break_placeholder="<PAGE_BREAK>"
+        )
 
     # Giải phóng bộ nhớ
     del conv_result
@@ -162,8 +150,8 @@ if __name__ == "__main__":
             print("\n--- Nội dung Markdown (500 ký tự đầu) ---")
             print(markdown_content[:500] + "...")
             
-            # # Lưu kết quả ra file để xem cho kỹ
-            output_file = f"./tests/services/idea_{duration:.0f}s.md"
+            # Lưu kết quả ra file để xem cho kỹ
+            output_file = f"./tests/services/dkgdc_2_{duration:.0f}s.md"
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
             print(f"\n📂 Kết quả chi tiết đã được lưu tại: {output_file}")

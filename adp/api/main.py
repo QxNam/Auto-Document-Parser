@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from adp.api.middleware.timeout_middleware import TimeoutMiddleware
-from adp.api.routers import document_router, file_router, s3_router
+from adp.api.routers import document_router, file_router, s3_router, cache_router
 from adp.api.middleware.rate_limit import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -58,3 +58,5 @@ async def health_check():
 app.include_router(file_router.router)
 app.include_router(document_router.router)
 app.include_router(s3_router.router)
+app.include_router(cache_router.router)
+

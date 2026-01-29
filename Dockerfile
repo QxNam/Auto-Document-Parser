@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 
+
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,8 +9,38 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TESSDATA_PREFIX=/app/weights/tessdata \
     DOCLING_MODEL_PATH=/app/weights/models_docling
 
+
+RUN pip install docling==2.60.1
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        # Các thư viện hệ thống cần thiết cho Docling (thay thế cho libgl1-mesa-glx)
+        libgl1 \
+        libglx0 \
+        libxcb1 \
+        libx11-6 \
+        libglib2.0-0 \
+        # OCR components (Tesseract 5)
+        tesseract-ocr \
+        tesseract-ocr-vie \
+        tesseract-ocr-eng \
+        # Xử lý PDF và hình ảnh
+        poppler-utils \
+        libpng16-16 \
+        libxslt1.1 && \
+    # Dọn dẹp triệt để để giảm dung lượng image
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* \
+           /tmp/* \
+           /var/tmp/* \
+           /usr/share/doc/* \
+           /usr/share/man/*
+
+
+RUN pip install pymupdf-layout
 
 COPY ./adp ./adp
 COPY ./tests ./tests

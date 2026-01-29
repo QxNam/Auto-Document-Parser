@@ -1,7 +1,8 @@
 import io
+from adp.services.parse.engines.llm_engine import LLMParseEngine
 from adp.services.parse.parse_registry import ParseRegistry
 from adp.services.parse.base_parse import BaseParse
-from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
+from adp.services.parse.engines.docling_engine import DoclingEngine
 from adp.configs.logger import worker_logger as logger
 
 @ParseRegistry.register([".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff"])
@@ -11,12 +12,13 @@ class ImageParse(BaseParse):
     """
 
     def __init__(self):
-        self.text_layer_engine = PDFTextLayerEngine()
+        self.ocr_engine = DoclingEngine()
+        self.llm_engine = LLMParseEngine()
 
     def parse(
         self,
         file_obj: io.BytesIO,
-        engine: str = "auto",
+        engine: str = "ocr",
         output_format: str = "markdown",
     ) -> str:
         """
@@ -28,9 +30,7 @@ class ImageParse(BaseParse):
         """
 
         try:
-            parse_engine = self.text_layer_engine
-
-            return parse_engine.to_markdown(file_obj=file_obj)
+            return self.ocr_engine.image_to_markdown(file_obj)
 
         except Exception as e:
             logger.error(f"Failed to parse Image: {e}")

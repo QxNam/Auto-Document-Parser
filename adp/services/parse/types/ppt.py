@@ -46,7 +46,7 @@ class PowerPointParse(BaseParse):
                 full_text.append("\n")
         
             content = "\n".join(full_text)
-            return content, "", num_slides
+            return content
 
         except Exception as e:
             logger.error(f"Failed to parse PowerPoint: {e}")

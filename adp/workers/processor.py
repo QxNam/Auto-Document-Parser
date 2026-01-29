@@ -48,11 +48,9 @@ class ParseWorker:
                 return
 
             result = self.parse.parse(file_obj=file_obj, file_name=message.file_name)
-            # logger.info(f"Parsed content: {result[:100]}")
             
             # Observer
             doc = await PGService.get_by_id(db, message.metadata_id)
-            logger.info(f"file_hash: {doc.file_hash}")
             results = await self.observer_manager.send(data=result, file_name=message.file_name, task_id=message.metadata_id, file_hash=doc.file_hash)
             await PGService.update_output_uri(
                 db=db,
