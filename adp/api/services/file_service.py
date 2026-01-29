@@ -16,6 +16,7 @@ from adp.configs.settings import settings
 from adp.configs.logger import api_logger as logger
 from adp.utils.helpers import get_file_hash
 from adp.utils.wait_worker import wait_for_worker_signal
+from adp.services.monitoring.metrics import metrics  # Import metrics helper để track Prometheus metrics
 
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 
@@ -42,6 +43,13 @@ class FileService:
             self._check_file_size(file)
             self._check_file_type(file_name)
             logger.info(f"[Step-01] File {file_name} passed validation checks.")
+            
+            # METRICS: Track file size distribution
+            # Giúp monitor file sizes được upload để tối ưu storage và processing
+            metrics.track_file_size(
+                file_type=content_type,  # pdf, docx, txt, jpg, png, etc.
+                size_bytes=file_size
+            )
 
             # check duplicate
             file_exist = await self._check_file_exist(file_name=file_name, file=file, db=db)
@@ -95,10 +103,29 @@ class FileService:
             if not status_push:
                 raise exc.MessageQueueError("[Step-04] Failed to publish message to Kafka.")
             logger.info(f"[Step-04] Message published to Kafka topic {KAFKA_TOPIC_NAME} for document ID {doc.id}.")
+            
+            # METRICS: Track successful file upload
+            # Counter này tăng mỗi khi upload thành công end-to-end
+            # (đã validate, upload S3, save DB, push Kafka successfully)
+            metrics.track_file_upload(
+                file_type=content_type,
+                status='success'
+            )
 
             return message
         
         except Exception as e:
+            # METRICS: Track failed upload
+            # Chỉ track nếu đã xác định được file type (content_type được set ở line 39)
+            # Dùng getattr để tránh AttributeError nếu exception xảy ra trước line 39
+            try:
+                metrics.track_file_upload(
+                    file_type=content_type if 'content_type' in locals() else 'unknown',
+                    status='failed'
+                )
+            except:
+                pass  # Không để metrics tracking làm crash exception handling
+            
             logger.error(f"Error in send_to_queue: {e}", exc_info=True)
             raise e
         

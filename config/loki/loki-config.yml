@@ -6,11 +6,15 @@ server:
 
 common:
   instance_addr: 127.0.0.1
-  path_prefix: /tmp/loki
+  # SỬA: Đổi path từ /tmp/loki sang /loki để tránh permission issues
+  # Volume mount trong docker-compose: loki-data:/loki
+  path_prefix: /loki
   storage:
     filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
+      # Thư mục lưu log chunks (data)
+      chunks_directory: /loki/chunks
+      # Thư mục lưu ruler rules (alerting/recording rules)
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:

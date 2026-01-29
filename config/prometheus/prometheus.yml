@@ -1,18 +1,211 @@
+# ===========================================================================
+# Prometheus Configuration cho Auto-Document-Parser
+# ===========================================================================
+# File này định nghĩa:
+# - Scrape intervals: Tần suất scrape metrics
+# - Scrape targets: Services cần monitor
+# - Labels: Metadata để phân loại metrics
+
 global:
+  # =========================================================================
+  # GLOBAL SETTINGS
+  # =========================================================================
+  # Interval giữa các lần scrape metrics (15s là chuẩn industry)
+  # Có thể giảm xuống 5s cho realtime hơn, nhưng tốn CPU/storage
   scrape_interval: 15s
   
+  # Timeout cho mỗi scrape request
+  # Nếu target không respond trong 10s thì scrape fail
+  scrape_timeout: 10s
+  
+  # Interval đánh giá alerting rules (nếu có)
+  evaluation_interval: 15s
+  
+  # External labels được add vào TẤT CẢ metrics
+  # Hữu ích khi push metrics sang remote storage (Grafana Cloud, Thanos, etc.)
+  external_labels:
+    cluster: 'adp-cluster'  # Tên cluster
+    environment: 'dev'      # Environment (dev/staging/prod)
+
+# ===========================================================================
+# SCRAPE CONFIGURATIONS - Định nghĩa targets để scrape metrics
+# ===========================================================================
 scrape_configs:
+  # -------------------------------------------------------------------------
+  # Job 1: Prometheus self-monitoring
+  # -------------------------------------------------------------------------
+  # Prometheus scrape metrics của chính nó để monitor health
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-
-  - job_name: 'adp_services'
-    static_configs:
-      - targets: ['adp_api:8000', 'adp_worker_parse:8000']
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
   
-  - job_name: 'node'
+  # -------------------------------------------------------------------------
+  # Job 2: FastAPI Application Metrics
+  # -------------------------------------------------------------------------
+  # Scrape metrics từ API service (FastAPI)
+  # Endpoint: http://adp_api:8000/metrics
+  - job_name: 'adp_api'
+    # Metrics path (default là /metrics, nhưng khai báo explicit cho rõ ràng)
+    metrics_path: '/metrics'
+    
     static_configs:
-      - targets: ['localhost:9100']
-      - labels:
-          name: value-for-the-name
+      # Target: container_name:port
+      # adp_api là container name trong docker-compose.yml
+      - targets: ['adp_api:8000']
+        labels:
+          service: 'api'         # Service name để filter trong Grafana
+          component: 'fastapi'   # Component type
+    
+    # OPTIONAL: Relabel configs để customize labels
+    # Uncomment nếu muốn thay đổi instance label
+    # relabel_configs:
+    #   - source_labels: [__address__]
+    #     target_label: instance
+    #     replacement: 'adp_api'
+  
+  # -------------------------------------------------------------------------
+  # Job 3: Worker Process Metrics
+  # -------------------------------------------------------------------------
+  # Scrape metrics từ worker service (document processor)
+  # Endpoint: http://adp_worker_parse:9000/metrics
+  - job_name: 'adp_worker'
+    metrics_path: '/metrics'
+    
+    static_configs:
+      # Target: container_name:metrics_port
+      # Port 9000 được expose trong docker-compose.yml line 122
+      - targets: ['adp_worker_parse:9000']
+        labels:
+          service: 'worker'      # Service name
+          component: 'processor' # Worker component
+  
+  # -------------------------------------------------------------------------
+  # Job 4: Node Exporter (System Metrics)
+  # -------------------------------------------------------------------------
+  # Scrape metrics từ Node Exporter (CPU, RAM, Disk, Network)
+  # Endpoint: http://node-exporter:9100/metrics
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node_exporter'
+          component: 'system'
+  
+  # -------------------------------------------------------------------------
+  # Job 5: Redis Exporter (OPTIONAL - nếu deploy redis-exporter)
+  # -------------------------------------------------------------------------
+  # Uncomment nếu muốn monitor Redis metrics (connections, hit rate, etc.)
+  # Cần deploy redis-exporter container trong docker-compose.yml
+  # - job_name: 'redis_exporter'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis'
+  #         component: 'cache'
+  
+  # -------------------------------------------------------------------------
+  # Job 6: PostgreSQL Exporter (OPTIONAL - nếu deploy postgres-exporter)
+  # -------------------------------------------------------------------------
+  # Uncomment nếu muốn monitor PostgreSQL metrics (connections, queries, etc.)
+  # Cần deploy postgres-exporter container trong docker-compose.yml
+  # - job_name: 'postgres_exporter'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'
+  #         component: 'database'
+  
+  # -------------------------------------------------------------------------
+  # Job 7: Kafka Exporter (OPTIONAL - nếu deploy kafka-exporter)
+  # -------------------------------------------------------------------------
+  # Uncomment nếu muốn monitor Kafka metrics (lag, throughput, etc.)
+  # - job_name: 'kafka_exporter'
+  #   static_configs:
+  #     - targets: ['kafka-exporter:9308']
+  #       labels:
+  #         service: 'kafka'
+  #         component: 'message_queue'
 
+# ===========================================================================
+# ALERTING CONFIGURATION (OPTIONAL)
+# ===========================================================================
+# Uncomment nếu muốn setup alerting với Alertmanager
+# Alertmanager sẽ gửi alerts qua email, Slack, PagerDuty, etc.
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#       - targets:
+#         - 'alertmanager:9093'
+
+# ===========================================================================
+# RULE FILES (OPTIONAL - để define alerting/recording rules)
+# ===========================================================================
+# Uncomment nếu muốn định nghĩa alerting rules
+# Ví dụ: Alert khi API latency > 1s, hoặc worker error rate > 5%
+# rule_files:
+#   - 'alerts/*.yml'
+#   - 'rules/*.yml'
+
+# ===========================================================================
+# EXAMPLE ALERTING RULES (tạo file config/prometheus/alerts/adp_alerts.yml)
+# ===========================================================================
+# groups:
+#   - name: adp_api_alerts
+#     interval: 30s
+#     rules:
+#       # Alert khi API error rate > 5%
+#       - alert: HighAPIErrorRate
+#         expr: |
+#           rate(http_requests_total{status=~"5.."}[5m]) 
+#           / 
+#           rate(http_requests_total[5m]) 
+#           > 0.05
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "High API error rate (instance {{ $labels.instance }})"
+#           description: "API error rate is {{ $value | humanizePercentage }}"
+#       
+#       # Alert khi API latency p95 > 2s
+#       - alert: HighAPILatency
+#         expr: |
+#           histogram_quantile(0.95, 
+#             rate(http_request_duration_seconds_bucket[5m])
+#           ) > 2
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "High API latency (instance {{ $labels.instance }})"
+#           description: "API p95 latency is {{ $value }}s"
+#   
+#   - name: adp_worker_alerts
+#     interval: 30s
+#     rules:
+#       # Alert khi worker error rate > 10%
+#       - alert: HighWorkerErrorRate
+#         expr: |
+#           rate(adp_task_processed_total{status="failed"}[5m])
+#           /
+#           rate(adp_task_processed_total[5m])
+#           > 0.10
+#         for: 5m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "High worker error rate"
+#           description: "Worker error rate is {{ $value | humanizePercentage }}"
+#       
+#       # Alert khi không có worker active
+#       - alert: NoActiveWorkers
+#         expr: adp_active_workers == 0
+#         for: 2m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "No active workers"
+#           description: "No workers are currently processing tasks"

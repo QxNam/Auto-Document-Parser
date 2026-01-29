@@ -151,60 +151,132 @@ services:
     #       cpus: '4'
     #       memory: 8GB
 
-  # grafana:
-  #   container_name: grafana
-  #   image: grafana/grafana:latest
-  #   user: ${USER_ID}
-  #   volumes:
-  #     - ./config/grafana:/var/lin/grafana
-  #   ports:
-  #     - "3000:3000"
-  #   restart: unless-stopped
+  # =============================================================================
+  # MONITORING STACK
+  # =============================================================================
+  # Stack monitoring bao gồm: Grafana, Loki, Promtail, Prometheus, Node Exporter
+  # Mục đích: Thu thập metrics, logs và visualization
+  
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    # Không dùng user: ${USER_ID} để tránh permission issues
+    # Grafana container sẽ chạy với user default (grafana:grafana, UID 472)
+    volumes:
+      # Persistent storage cho Grafana data (dashboards, users, settings)
+      - grafana-data:/var/lib/grafana
+      # Auto-provision datasources (Prometheus, Loki) khi Grafana start
+      # File config: config/grafana/provisioning/datasources/datasources.yml
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"  # Grafana Web UI
+    environment:
+      # Admin credentials (đổi password trong production!)
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Disable user signup để bảo mật
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Enable anonymous access cho demo (tắt trong production)
+      # - GF_AUTH_ANONYMOUS_ENABLED=true
+      # - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    restart: unless-stopped
+    depends_on:
+      - prometheus  # Đảm bảo Prometheus start trước
+      - loki        # Đảm bảo Loki start trước
     
-  # loki:
-  #   container_name: loki
-  #   image: grafana/loki:2.9.8
-  #   volumes:
-  #     - ./config/loki:/etc/loki
-  #   ports:
-  #     - "3100:3100"
-  #   restart: unless-stopped
-  #   command: -config.file=/etc/loki/loki-config.yml
       
-  # promtail:
-  #   container_name: promtail
-  #   image: grafana/promtail:2.9.8
-  #   volumes:
-  #     - ./logs:/app/logs:ro
-  #     - ./config/promtail:/etc/promtail
-  #   restart: unless-stopped
-  #   command: -config.file=/etc/promtail/promtail-config.yml
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.8  # Version cụ thể để đảm bảo compatibility
+    volumes:
+      # Mount config file từ host vào container
+      - ./config/loki:/etc/loki
+      # Persistent storage cho log data (indexes và chunks)
+      # SỬA: Mount vào /loki thay vì /tmp/loki để tránh permission issues
+      - loki-data:/loki
+    ports:
+      - "3100:3100"  # Loki HTTP API endpoint
+    restart: unless-stopped
+    # Chỉ định config file path
+    command: -config.file=/etc/loki/loki-config.yml
+    # Health check để đảm bảo Loki ready trước khi Promtail/Grafana connect
+    # SỬA: Dùng wget thay vì curl vì Loki image base Alpine có wget sẵn
+    # Nếu vẫn lỗi, có thể comment healthcheck và dùng depends_on không có condition
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      
+      
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:2.9.8
+    volumes:
+      # Mount logs directory READ-ONLY (tránh ghi nhầm vào logs)
+      - ./logs:/app/logs:ro
+      # Mount config
+      - ./config/promtail:/etc/promtail
+      # Volume để lưu positions.yaml (track đã đọc logs đến đâu)
+      - promtail-positions:/tmp
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    # Đợi Loki healthy trước khi start
+    depends_on:
+      loki:
+        condition: service_healthy
 
-  # prometheus:
-  #   container_name: prometheus
-  #   image: prom/prometheus:latest
-  #   volumes:
-  #     - ./config/prometheus:/etc/prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   restart: unless-stopped
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
 
-  # node-exporter:
-  #   container_name: node-exporter
-  #   image: prom/node-exporter:latest
-  #   network_mode: host # Not compatible with ports declaration. This service will expose port 9100.
-  #   volumes:
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #     - /:/rootfs:ro
-  #   command:
-  #     - '--path.procfs=/host/proc'
-  #     - '--path.sysfs=/host/sys'
-  #     - '--path.rootfs=/rootfs'
-  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
-  #   restart: unless-stopped
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    volumes:
+      # Mount config file
+      - ./config/prometheus:/etc/prometheus
+      # Persistent storage cho metrics data (time-series database)
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"  # Prometheus Web UI
+    restart: unless-stopped
+    command:
+      # Config file path
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      # TSDB storage path
+      - '--storage.tsdb.path=/prometheus'
+      # Retention time: giữ metrics data 15 ngày (có thể tăng lên 30d, 90d tùy nhu cầu)
+      - '--storage.tsdb.retention.time=15d'
+      # Web console paths
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      # Enable lifecycle API (reload config bằng POST request)
+      - '--web.enable-lifecycle'
+
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:latest
+    # SỬA: không dùng network_mode: host vì conflict với ports declaration
+    # Dùng bridge network (default) để có thể expose ports
+    # network_mode: host  # REMOVED - không tương thích với ports
+    ports:
+      - "9100:9100"  # Node Exporter metrics endpoint
+    volumes:
+      # Mount host filesystem READ-ONLY để collect metrics
+      # /proc: CPU, memory, network stats
+      # /sys: System devices, filesystems stats
+      # /: Root filesystem (disk stats)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      # Chỉ định path của host filesystems trong container
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      # Exclude virtual filesystems để tránh noise trong metrics
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
 
 volumes:
   kafka-data:
@@ -213,3 +285,13 @@ volumes:
     name: redis-data
   postgres-data:
     name: postgres-data
+  # Volumes cho monitoring stack
+  # Lưu data persistent khi restart containers
+  grafana-data:
+    name: grafana-data  # Grafana dashboards, users, settings
+  loki-data:
+    name: loki-data  # Loki log indexes và chunks
+  promtail-positions:
+    name: promtail-positions  # Track vị trí đã đọc logs
+  prometheus-data:
+    name: prometheus-data  # Prometheus time-series database

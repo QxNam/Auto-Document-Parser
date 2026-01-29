@@ -10,6 +10,7 @@ from adp.configs.settings import settings
 from adp.services.storage.redis_cache import redis_client
 from adp.configs.database import create_tables
 from adp.configs.logger import api_logger as logger
+from prometheus_fastapi_instrumentator import Instrumentator  # Thư viện để instrument FastAPI với Prometheus metrics
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +46,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =============================================================================
+# Prometheus Instrumentation
+# =============================================================================
+# Instrumentator tự động thêm các metrics chuẩn cho FastAPI:
+# - http_requests_total: Tổng số HTTP requests (counter)
+# - http_request_duration_seconds: Latency của requests (histogram)
+# - http_requests_in_progress: Số requests đang xử lý (gauge)
+# - http_request_size_bytes: Kích thước request body (histogram)
+# - http_response_size_bytes: Kích thước response body (histogram)
+#
+# Endpoint /metrics sẽ expose tất cả metrics ở format Prometheus
+# Prometheus sẽ scrape endpoint này theo interval (default 15s)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=True)
 
 @app.get("/", tags=["Home"])
 async def root():
