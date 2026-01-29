@@ -37,7 +37,7 @@ class ExcelParse(BaseParse):
                 output.append("\n")
             
             content = "\n".join(output)
-            return content, "", num_sheets
+            return content
         except Exception as e:
             logger.error(f"Failed to parse Excel: {e}")
         

@@ -17,11 +17,10 @@ aiokafka==0.13.0
 aioredis==2.0.1
 redis
 
-# docling==2.68.0
-tesserocr==2.9.2
-pymupdf4llm==0.2.9
 docling-core==2.57.0
 docling-parse==4.7.3
+tesserocr==2.9.2
+pymupdf4llm==0.2.9
 pypdf==6.5.0
 python-docx==1.2.0
 google-genai==1.60.0

@@ -1,7 +1,8 @@
 import json
 import redis.asyncio as redis
 from adp.configs.settings import settings
-from adp.configs.logger import worker_logger as logger
+from adp.configs.logger import worker_logger
+from adp.configs.logger import api_logger
 
 REDIS_URL = settings.REDIS_URL or "redis://localhost:6379/0"
 
@@ -25,10 +26,11 @@ class RedisClient:
                     socket_timeout=5,
                     retry_on_timeout=True
                 )
-                logger.info("Successfully connected to Redis.")
+                worker_logger.info("✅ Successfully connected to Redis.")
+                api_logger.info("✅ Successfully connected to Redis.")
+
             except Exception as e:
-                logger.error(f"Failed to connect to Redis: {e}")
-                raise
+                raise e
 
     async def get(self, key: str):
         return await self._redis.get(key)
@@ -47,6 +49,23 @@ class RedisClient:
     def pubsub(self):
         """Return a pubsub object for the API to listen on."""
         return self._redis.pubsub()
+    
+    async def flush_all(self):
+        """Remove all keys from all databases."""
+        if self._redis:
+            return await self._redis.flushall()
+        return False
+
+    async def get_all_keys(self, pattern: str = "*"):
+        """Get all keys (Use SCAN to avoid blocking Redis)"""
+        keys = []
+        cursor = 0
+        while True:
+            cursor, partial_keys = await self._redis.scan(cursor=cursor, match=pattern, count=100)
+            keys.extend(partial_keys)
+            if cursor == 0:
+                break
+        return keys
 
     async def close(self):
         if self._redis:

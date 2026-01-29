@@ -140,6 +140,7 @@ services:
     volumes:
       - ./adp:/app/adp
       - ./logs:/app/logs
+      - ./tests:/app/tests
       - ./weights:/app/weights
       - ./saved:/tmp/saved
 

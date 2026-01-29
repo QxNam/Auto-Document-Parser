@@ -20,7 +20,7 @@ class Parse:
             logger.debug(f"Using parser: {parser_instance.__class__.__name__} for extension: {extension}")
 
             # parse
-            result = parser_instance.parse(file_obj=file_obj, engine=settings.ENGINE, output_format="markdown")
+            result = parser_instance.parse(file_obj=file_obj, engine=settings.OCR_ENGINE, output_format="markdown")
             return result
 
         except Exception as e:

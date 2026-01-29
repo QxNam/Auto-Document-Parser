@@ -7,7 +7,8 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from adp.configs.settings import settings
-from adp.configs.logger import worker_logger as logger
+from adp.configs.logger import worker_logger
+from adp.configs.logger import api_logger
 
 class S3Service:
     _instance = None
@@ -36,7 +37,8 @@ class S3Service:
         )
         self.bucket_name = getattr(settings, 'S3_BUCKET_NAME', None)
         self._initialized = True
-        logger.info("✅ S3Service Singleton initialized with Connection Pooling.")
+        worker_logger.info("✅ S3Service Singleton initialized with Connection Pooling.")
+        api_logger.info("✅ S3Service Singleton initialized with Connection Pooling.")
 
     def upload_fileobj(
         self, file_obj, bucket_name: str, object_key: str, extra_args: Dict = None
@@ -52,7 +54,7 @@ class S3Service:
                 file_obj, bucket_name, object_key, ExtraArgs=extra_args or {}
             )
 
-            logger.info(f"✅ S3 fileobj uploaded to s3://{bucket_name}/{object_key}")
+            # logger.info(f"✅ S3 fileobj uploaded to s3://{bucket_name}/{object_key}")
             return {
                 "status": True, 
                 "uri": f"s3://{bucket_name}/{object_key}"
@@ -90,7 +92,7 @@ class S3Service:
             self.s3_client.download_fileobj(bucket_name, object_key, file_buffer)
             file_buffer.seek(0)
             
-            logger.info(f"✅ S3 fileobj downloaded from s3://{bucket_name}/{object_key}")
+            # logger.info(f"✅ S3 fileobj downloaded from s3://{bucket_name}/{object_key}")
             return file_buffer
 
         except ClientError as e:
@@ -104,9 +106,9 @@ class S3Service:
             directory = os.path.dirname(output_path)
             if directory and not os.path.exists(directory):
                 os.makedirs(directory, exist_ok=True)
-                logger.info(f"📁 Created: {directory}")
+                # logger.info(f"📁 Created: {directory}")
 
-            logger.info(f"📥 Downloading: s3://{bucket_name}/{key} -> {output_path}")
+            # logger.info(f"📥 Downloading: s3://{bucket_name}/{key} -> {output_path}")
 
             target_bucket = bucket_name or self.bucket_name
             if not target_bucket:
@@ -114,7 +116,7 @@ class S3Service:
 
             self.s3_client.download_file(target_bucket, key, output_path)
 
-            logger.info(f"✅ File downloaded successfully.")
+            # logger.info(f"✅ File downloaded successfully.")
             return output_path
 
         except ClientError as e:
@@ -129,7 +131,7 @@ class S3Service:
                 raise ValueError("Bucket name must be provided")
             
             self.s3_client.delete_object(Bucket=bucket_name, Key=object_key)
-            logger.info(f"✅ S3 object deleted from s3://{bucket_name}/{object_key}")
+            # logger.info(f"✅ S3 object deleted from s3://{bucket_name}/{object_key}")
 
         except ClientError as e:
             raise RuntimeError(f"S3 delete object error: {e}") from e
@@ -156,9 +158,10 @@ class S3Service:
                     Bucket=bucket_name,
                     Delete={'Objects': objects_to_delete}
                 )
-                logger.info(f"✅ Deleted all objects in s3://{bucket_name}/{prefix}")
+                # logger.info(f"✅ Deleted all objects in s3://{bucket_name}/{prefix}")
             else:
-                logger.info(f"ℹ️ No objects found to delete in s3://{bucket_name}/{prefix}")
+                # logger.info(f"ℹ️ No objects found to delete in s3://{bucket_name}/{prefix}")
+                pass
 
         except ClientError as e:
             raise RuntimeError(f"S3 delete all objects error: {e}") from e
@@ -172,7 +175,7 @@ class S3Service:
                 raise ValueError("Bucket name must be provided")
             
             response = self.s3_client.head_object(Bucket=bucket_name, Key=object_key)
-            logger.info(f"✅ Fetched metadata for s3://{bucket_name}/{object_key}")
+            # logger.info(f"✅ Fetched metadata for s3://{bucket_name}/{object_key}")
             return response
 
         except ClientError as e:
@@ -195,7 +198,7 @@ class S3Service:
                 for obj in contents:
                     objects.append(obj['Key'])
 
-            logger.info(f"✅ Listed objects in s3://{bucket_name}/{prefix}")
+            # logger.info(f"✅ Listed objects in s3://{bucket_name}/{prefix}")
             return objects
 
         except ClientError as e:

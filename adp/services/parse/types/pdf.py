@@ -1,18 +1,19 @@
 import io
-from typing import Any, BinaryIO, Dict, Tuple, Union
+from typing import Any, BinaryIO, Dict, Union
 import fitz
 from pymupdf4llm.helpers import check_ocr
-# import pymupdf.layout
-import pymupdf4llm
+from pathlib import Path
 
+from adp.services.parse.engines.docling_engine import DoclingEngine
 from adp.services.parse.parse_registry import ParseRegistry
 from adp.services.parse.base_parse import BaseParse
 from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
-from adp.services.parse.engines.llm_engine import GeminiPDFParserEngine
+from adp.services.parse.engines.llm_engine import LLMParseEngine
 from adp.configs.logger import worker_logger as logger
-from adp.configs.settings import settings
 
 DEFAULT_DPI = 150
+MIN_OCR_PAGE_RATIO=0.3
+MIN_OCR_PAGE_COUNT=1
 MAX_INSPECT_PAGES = 50
 TEXT_FLAGS = (
     fitz.TEXT_COLLECT_STYLES
@@ -25,46 +26,68 @@ TEXT_FLAGS = (
 @ParseRegistry.register([".pdf"])
 class PDFParse(BaseParse):
     def __init__(self):
-        self.local_engine = PDFTextLayerEngine()
-        self.llm_engine = GeminiPDFParserEngine()
+        self.text_layer_engine = PDFTextLayerEngine()
+        self.ocr_engine = DoclingEngine()
+        self.llm_engine = LLMParseEngine()
 
     def parse(
         self,
         file_obj: io.BytesIO,
-        engine: str = "text_layer",
+        engine: str = "auto",
         output_format: str = "markdown",
     ) -> str:
         try:
-            file_obj.seek(0)
-            
-            md_text = self.local_engine.to_markdown(file_obj)
+            if engine == "auto":
+                should_ocr_info = self._decide_should_ocr_file(
+                    pdf_path=file_obj,
+                    min_ocr_page_ratio=MIN_OCR_PAGE_RATIO,
+                    min_ocr_page_count=MIN_OCR_PAGE_COUNT,
+                    dpi=DEFAULT_DPI,
+                )
+                logger.debug(
+                    f"OCR decision for PDF: {should_ocr_info.get('reason', '')}"
+                )
+                should_ocr = should_ocr_info.get("should_ocr_file", False)
+                file_obj.seek(0)
 
-            # is_poor_quality = len(md_text.strip()) < 100 ## should be replaced with better quality check
-            # should_use_llm = engine == "auto" and settings.ENGINE == "auto" and is_poor_quality
-
-            # if should_use_llm:
-            #     try:
-            #         logger.info(f"Switching to LLM OCR engine (Reason: engine={engine}, poor_quality={is_poor_quality})")
-            #         file_obj.seek(0)
-            #         llm_text = self.llm_engine.to_markdown(file_obj)
+                if should_ocr:
+                    logger.info("Using OCR engine for PDF parsing.")
+                    if output_format == "markdown":
+                        return self.ocr_engine.pdf_to_markdown(file_obj)
                     
-            #         if llm_text:
-            #             md_text = llm_text
-            #         else:
-            #             logger.warning("LLM engine returned empty text, staying with local output.")
-            #     except Exception as e:
-            #         logger.error(f"Failed to parse PDF with LLM engine: {e}")
-
-            return md_text
+                else:
+                    logger.info("Using text layer engine for PDF parsing.")
+                    if output_format == "markdown":
+                        return self.text_layer_engine.to_markdown(file_obj)
+                
 
         except Exception as e:
             logger.error(f"Failed to parse PDF: {e}")
-            return ""
+            raise e
+        
 
+    def _open_pdf(self, source: Union[str, Path, BinaryIO]) -> fitz.Document:
+        """
+        Open PDF from path, bytes, or BytesIO.
+        """
+
+        if isinstance(source, (str, Path)):
+            path = Path(source)
+            if not path.exists():
+                raise FileNotFoundError(path)
+            return fitz.open(path)
+
+        if isinstance(source, bytes):
+            return fitz.open(stream=source, filetype="pdf")
+
+        if isinstance(source, io.BytesIO):
+            return fitz.open(stream=source.getvalue(), filetype="pdf")
+
+        raise TypeError("pdf_path must be str | Path | bytes | BytesIO")
 
     def _decide_should_ocr_file(
         self,
-        pdf_path: Union[str, BinaryIO],
+        pdf_path: Union[str, Path, BinaryIO],
         *,
         min_ocr_page_ratio: float = 0.3,
         min_ocr_page_count: int = 1,

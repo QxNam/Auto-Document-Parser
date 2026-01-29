@@ -6,7 +6,6 @@ import hashlib
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from adp.api.responses.upload import ViewResponse
 from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.s3 import s3_service
 from adp.services.storage.redis_cache import redis_client
@@ -138,7 +137,7 @@ class FileService:
         task_id = result_msg['metadata_id']
 
         try:
-            # Chờ Worker báo tin qua Redis Pub/Sub
+            # Wait for worker signal with timeout
             final_result = await wait_for_worker_signal(task_id, timeout=300)
             return final_result
 

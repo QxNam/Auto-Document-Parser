@@ -1,4 +1,14 @@
 # Auto Document Parse
+---
+Contents:
+- [Giới thiệu](#giới-thiệu)
+- [Pipeline tổng quan](#pipeline-tổng-quan)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Authentication](#authentication)
+---
+
+## Giới thiệu
+Hệ thống Auto Document Parse (ADP) là một giải pháp tự động hóa quy trình trích xuất và xử lý tài liệu. Hệ thống này bao gồm nhiều dịch vụ khác nhau để nhận, xử lý, trích xuất và lưu trữ tài liệu từ các nguồn khác nhau. Mục tiêu của ADP là giảm thiểu sự can thiệp thủ công trong việc xử lý tài liệu, tăng hiệu suất và độ chính xác trong việc trích xuất thông tin quan trọng.
 
 ## Pipeline tổng quan
 Hệ thống Auto Document Parse (ADP) được thiết kế để tự động trích xuất và xử lý tài liệu từ các nguồn khác nhau. Dưới đây là mô tả tổng quan về pipeline của hệ thống:
