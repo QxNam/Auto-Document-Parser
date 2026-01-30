@@ -1,73 +1,8 @@
-# import io, os
-# from docling.datamodel.base_models import InputFormat
-# from docling.datamodel.pipeline_options import PdfPipelineOptions, TesseractOcrOptions
-# from docling.document_converter import DocumentConverter, PdfFormatOption
-
-# class DoclingEngine:
-#     def __init__(self):
-#         # 1. Cấu hình OCR sử dụng Tesseract
-#         pipeline_options = PdfPipelineOptions()
-#         pipeline_options.ocr_options = TesseractOcrOptions()  # Mặc định sử dụng tesseract
-        
-#         # 2. Khởi tạo DocumentConverter với cấu hình OCR
-#         self.converter = DocumentConverter(
-#             format_options={
-#                 InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-#             }
-#         )
-
-#     def to_markdown(self, file_obj: io.BytesIO = None) -> str:
-#         if file_obj is None:
-#             return ""
-
-#         # Docling Converter có thể nhận BytesIO trực tiếp thông qua DocumentStream
-#         from docling.datamodel.document import DocumentStream
-        
-#         # Tạo stream để converter xử lý
-#         doc_stream = DocumentStream(name="input.pdf", stream=file_obj)
-        
-#         # Thực hiện chuyển đổi
-#         result = self.converter.convert(doc_stream)
-        
-#         # Xuất kết quả dưới định dạng Markdown
-#         return result.document.export_to_markdown()
-    
-# def test_pdf_conversion(file_path):
-#     # 1. Kiểm tra file có tồn tại không
-#     if not os.path.exists(file_path):
-#         print(f"Lỗi: Không tìm thấy file tại {file_path}")
-#         return
-
-#     print(f"--- Đang xử lý file: {file_path} ---")
-
-#     # 2. Đọc file vào BytesIO
-#     with open(file_path, "rb") as f:
-#         pdf_stream = io.BytesIO(f.read())
-
-#     # 3. Khởi tạo Engine và chuyển đổi
-#     try:
-#         engine = DoclingEngine()
-#         markdown_output = engine.to_markdown(pdf_stream)
-
-#         # 4. In kết quả hoặc lưu ra file .md
-#         print("\n--- Kết quả Markdown --- \n")
-#         print(markdown_output)
-        
-#         with open("output_test.md", "w", encoding="utf-8") as out_f:
-#             out_f.write(markdown_output)
-#         print("\n--- Đã lưu kết quả vào file output_test.md ---")
-
-#     except Exception as e:
-#         print(f"Có lỗi xảy ra trong quá trình convert: {e}")
-
-# if __name__ == "__main__":
-#     # Thay 'abc.pdf' bằng đường dẫn thực tế của bạn
-#     test_pdf_conversion("dkgdc-cho-khcn-vay-tung-lan-va-khoan-vay-duoc-dam-bao-bang-chung-chi-tien-gui.pdf")
-
 import os
 import time
 
 import io, os, gc
+from docling.backend.docling_parse_v4_backend import DoclingParseV4DocumentBackend
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.base_models import DocumentStream, InputFormat
 from docling.datamodel.pipeline_options import (
@@ -76,7 +11,7 @@ from docling.datamodel.pipeline_options import (
     AcceleratorDevice,
     AcceleratorOptions,
 )
-os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata" #"./weights/tessdata" # "
+# os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata" #"./weights/tessdata" # "
 DOCLING_MODEL_PATH = "./weights/models_docling"
 
 def docling_process_cpu(path: str) -> str:
@@ -89,6 +24,7 @@ def docling_process_cpu(path: str) -> str:
     )
 
     pipeline_options = PdfPipelineOptions()
+    pipeline_options.generate_page_images = True
     pipeline_options.do_ocr = True
     pipeline_options.images_scale = 2.0
     pipeline_options.do_table_structure = True
@@ -105,7 +41,8 @@ def docling_process_cpu(path: str) -> str:
     # 3. Khởi tạo Converter
     doc_converter = DocumentConverter(
         format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options, backend=DoclingParseV4DocumentBackend)
+            
         }
     )
 
@@ -116,22 +53,8 @@ def docling_process_cpu(path: str) -> str:
             stream=io.BytesIO(f.read())
         )
         conv_result = doc_converter.convert(docs)
-    # 4. TRÍCH XUẤT SCORE REPORT (Từ page_preds)
-    # print(f"{'Trang':<5} | {'OCR Score':<10} | {'Layout Score':<12} | {'Table Score':<10}")
-    # print("-" * 50)
-    
-    # for i, pred in enumerate(conv_result.page_preds):
-    #     scores = pred.confidence_score
-        
-    #     # Lấy các chỉ số từ PageConfidenceScores
-    #     ocr = scores.ocr_score if not hasattr(scores.ocr_score, "nan") else 0.0
-    #     layout = scores.layout_score
-    #     table = scores.table_score
-        
-    #     print(f"{i+1:<5} | {ocr:<10.4f} | {layout:<12.4f} | {table:<10.4f}")
-        
     result = conv_result.document.export_to_markdown(
-        page_break_placeholder="<PAGE_BREAK>"
+        page_break_placeholder="\n<PAGE_BREAK>\n"
     )
 
     # Giải phóng bộ nhớ
@@ -142,7 +65,7 @@ def docling_process_cpu(path: str) -> str:
 
 if __name__ == "__main__":
     # Đường dẫn tới file pdf của bạn
-    pdf_path = "./tests/services/dkgdc-cho-khcn-vay-tung-lan-va-khoan-vay-duoc-dam-bao-bang-chung-chi-tien-gui.pdf"
+    pdf_path = "./tests/services/1-bctc-hop-nhat-1-10.pdf"
     
     # Kiểm tra xem file có tồn tại không trước khi chạy
     if os.path.exists(pdf_path):
@@ -163,7 +86,7 @@ if __name__ == "__main__":
             print(markdown_content[:500] + "...")
             
             # # Lưu kết quả ra file để xem cho kỹ
-            output_file = f"./tests/services/idea_{duration:.0f}s.md"
+            output_file = f"./tests/services/bctc_{duration:.0f}s.md"
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
             print(f"\n📂 Kết quả chi tiết đã được lưu tại: {output_file}")
