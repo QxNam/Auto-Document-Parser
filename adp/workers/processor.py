@@ -1,6 +1,8 @@
 import asyncio
 import os
 from time import time
+from prometheus_client import start_http_server  # Để expose metrics endpoint trên HTTP server
+from adp.services.monitoring.metrics import metrics  # Import metrics helper để track worker metrics
 
 from anyio import Path
 
@@ -30,6 +32,9 @@ class ParseWorker:
 
     async def process_task(self, msg_body: dict):
         """Logic to process actual file parsing"""
+        # METRICS: Bắt đầu đo thời gian processing
+        start_time = time()
+        
         # recieved message
         message = MetadataMessage(**msg_body)
 
@@ -39,6 +44,10 @@ class ParseWorker:
 
         db = SessionLocal()
         await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.PROCESSING)
+        
+        # Extract file type từ filename để track metrics
+        # Ví dụ: "document.pdf" -> "pdf"
+        file_type = message.file_name.split('.')[-1].lower() if '.' in message.file_name else 'unknown'
         
         try:
             validate_file_result = validate_file(file_obj=file_obj, file_name=message.file_name)
@@ -59,17 +68,50 @@ class ParseWorker:
             )
             
             await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.COMPLETED)
+            
+            # METRICS: Track successful task completion
+            metrics.track_task_completion(status='completed')
+            
+            # METRICS: Track processing duration
+            # duration_seconds = thời gian từ lúc bắt đầu process_task đến giờ
+            duration_seconds = time() - start_time
+            metrics.track_processing_duration(
+                file_type=file_type,
+                parser_engine='auto',  # TODO: Lấy từ settings.ENGINE nếu cần chi tiết hơn
+                duration_seconds=duration_seconds
+            )
+            
             logger.info(f"✅ Finished at {time()}")
 
         except Exception as e:
             logger.error(f"❌ Parse error for {message.metadata_id}: {e}")
             await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.FAILED)
+            
+            # METRICS: Track failed task
+            metrics.track_task_completion(status='failed')
         finally:
             db.close()
 
     async def start(self):
         """Start the worker to consume messages and process tasks."""
         logger.info("=== Parse Worker Starting ===")
+        
+        # =============================================================================
+        # Start Prometheus Metrics Server
+        # =============================================================================
+        # Expose metrics endpoint tại port 9000
+        # Port này đã được define trong docker-compose.yml (line 122)
+        # Prometheus sẽ scrape http://adp_worker_parse:9000/metrics
+        try:
+            start_http_server(9000)
+            logger.info("📊 Metrics server started on port 9000")
+            logger.info("📊 Metrics endpoint: http://localhost:9000/metrics")
+            
+            # METRICS: Set worker active
+            metrics.set_active_workers(1)
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to start metrics server: {e}")
+            logger.warning("⚠️ Worker will continue without metrics endpoint")
 
         await redis_client.connect()
 

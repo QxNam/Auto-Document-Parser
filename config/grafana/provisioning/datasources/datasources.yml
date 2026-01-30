@@ -1,0 +1,135 @@
+# ===========================================================================
+# Grafana Data Sources Provisioning
+# ===========================================================================
+# File này auto-configure Prometheus và Loki data sources khi Grafana khởi động
+# Không cần manual setup trong Grafana UI
+#
+# Để enable provisioning:
+# 1. Tạo file này tại: config/grafana/provisioning/datasources/datasources.yml
+# 2. Uncomment volume mount trong docker-compose.yml:
+#    - ./config/grafana/provisioning:/etc/grafana/provisioning
+
+apiVersion: 1
+
+# Xóa tất cả datasources không được define ở đây (để tránh duplicates)
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+  - name: Loki
+    orgId: 1
+
+# ===========================================================================
+# DEFINE DATASOURCES
+# ===========================================================================
+datasources:
+  # -------------------------------------------------------------------------
+  # Prometheus Data Source (Metrics)
+  # -------------------------------------------------------------------------
+  - name: Prometheus
+    # Type: prometheus
+    type: prometheus
+    
+    # Access mode:
+    # - proxy: Grafana backend proxy requests (recommended, safer)
+    # - direct: Browser directly connect to datasource (can have CORS issues)
+    access: proxy
+    
+    # URL của Prometheus service
+    # Sử dụng container name:port trong Docker network
+    url: http://prometheus:9090
+    
+    # Set làm default data source cho panels mới
+    isDefault: true
+    
+    # Version (always 1 cho provisioning v1 API)
+    version: 1
+    
+    # Cho phép edit trong UI (có thể disable trong production)
+    editable: true
+    
+    # JSON data cho Prometheus-specific settings
+    jsonData:
+      # HTTP Method để query
+      # POST cho phép query dài hơn (complex PromQL)
+      httpMethod: POST
+      
+      # Time interval mặc định (phải match với Prometheus scrape_interval)
+      timeInterval: 15s
+      
+      # Query timeout (seconds)
+      queryTimeout: 60s
+      
+      # Custom query parameters (optional)
+      # Ví dụ: thêm default step parameter
+      # customQueryParameters: 'step=15s'
+      
+      # Exemplars configuration (để link metrics với traces - advanced)
+      # exemplarTraceIdDestinations:
+      #   - datasourceUid: tempo
+      #     name: trace_id
+  
+  # -------------------------------------------------------------------------
+  # Loki Data Source (Logs)
+  # -------------------------------------------------------------------------
+  - name: Loki
+    # Type: loki
+    type: loki
+    
+    # Access mode: proxy (recommended)
+    access: proxy
+    
+    # URL của Loki service
+    url: http://loki:3100
+    
+    # Không set default vì Prometheus đã là default
+    isDefault: false
+    
+    # Version
+    version: 1
+    
+    # Editable in UI
+    editable: true
+    
+    # JSON data cho Loki-specific settings
+    jsonData:
+      # Max lines to return trong một query (tránh quá tải browser)
+      maxLines: 1000
+      
+      # Timeout cho queries (seconds)
+      timeout: 60
+      
+      # Derived fields: Tự động extract fields từ logs
+      # Ví dụ: Extract trace_id từ logs để link với traces (Tempo)
+      # derivedFields:
+      #   - datasourceUid: tempo
+      #     matcherRegex: "trace_id=(\\w+)"
+      #     name: TraceID
+      #     url: "$${__value.raw}"
+      
+      # Alert queries configuration (nếu dùng Loki alerting)
+      # alertmanagerUid: alertmanager
+
+# ===========================================================================
+# USAGE EXAMPLES
+# ===========================================================================
+# Sau khi Grafana start với provisioning này:
+#
+# 1. Prometheus datasource sẽ tự động available
+#    - URL: http://prometheus:9090
+#    - Default datasource: Yes
+#
+# 2. Loki datasource sẽ tự động available
+#    - URL: http://loki:3100
+#
+# 3. Có thể test trong Grafana UI:
+#    - Configuration -> Data Sources -> Test
+#    - Kết quả: "Data source is working"
+#
+# 4. Query examples:
+#    Prometheus:
+#      - rate(http_requests_total[5m])
+#      - adp_file_upload_total
+#    
+#    Loki:
+#      - {job="adp_app_logs"}
+#      - {job="adp_app_logs"} |= "error"
