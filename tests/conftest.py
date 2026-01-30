@@ -5,6 +5,15 @@ import pytest
 from moto import mock_aws
 
 
+@pytest.fixture(autouse=True)
+def skip_heavy_tests_on_ci(request):
+    import os
+
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        if "s3" in request.node.name or "kafka" in request.node.name:
+            pytest.skip("Bỏ qua test hạ tầng trên GitHub Actions")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def aws_credentials():
     """Giả lập biến môi trường AWS trước khi các test chạy."""

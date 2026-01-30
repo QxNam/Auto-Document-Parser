@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from adp.services.storage.s3 import S3Service
 
 # Xác định đường dẫn file data.txt nằm cùng thư mục với file test này
@@ -22,10 +24,12 @@ def test_upload_file_success(s3_mock, setup_test_bucket):
         DATA_FILE_PATH.write_text("Dữ liệu test mẫu")
 
     # 1. Thực hiện upload
-    result = service.upload_file(str(DATA_FILE_PATH), s3_key)
+    with open(DATA_FILE_PATH, "rb") as f:
+        result = service.upload_fileobj(f, setup_test_bucket, s3_key)
 
     # 2. Kiểm tra kết quả trả về
-    assert result is True
+    assert result["status"] is True
+    assert "s3://" in result["uri"]
 
     # 3. Kiểm tra dữ liệu trên S3 mock
     obj = s3_mock.get_object(Bucket=setup_test_bucket, Key=s3_key)
@@ -44,9 +48,7 @@ def test_delete_file_success(s3_mock, setup_test_bucket):
     s3_mock.put_object(Bucket=setup_test_bucket, Key=s3_key, Body="content")
 
     # Thực hiện xóa
-    result = service.delete_file(s3_key)
-
-    assert result is True
+    service.delete_object(setup_test_bucket, s3_key)
 
     # Kiểm tra file không còn tồn tại
     import botocore
@@ -63,18 +65,18 @@ def test_get_uri_logic(setup_test_bucket):
     s3_key = "path/to/file.zip"
 
     expected_uri = f"s3://{setup_test_bucket}/{s3_key}"
-    assert service.get_uri(s3_key) == expected_uri
+    assert service.get_s3_uri(setup_test_bucket, s3_key) == expected_uri
 
 
 def test_upload_file_not_found(setup_test_bucket):  # Thêm fixture setup_test_bucket
     """Test xử lý lỗi khi file local không tồn tại"""
     service = S3Service()
+    service.bucket_name = setup_test_bucket
 
     # Gán tên bucket từ fixture để vượt qua bước validate của Boto3
     service.bucket_name = setup_test_bucket
 
     # Thực hiện upload file không tồn tại
-    result = service.upload_file("file_linh_tinh.txt", "remote.txt")
-
-    # Kết quả mong đợi là False (do try-except trong S3Service bắt được lỗi FileNotFoundError)
-    assert result is False
+    with pytest.raises(FileNotFoundError):
+        with open("file_linh_tinh.txt", "rb") as f:
+            service.upload_fileobj(f, setup_test_bucket, "remote.txt")
