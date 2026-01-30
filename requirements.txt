@@ -15,7 +15,7 @@ kafka-python-ng==2.2.3
 python-multipart==0.0.21
 aiokafka==0.13.0
 aioredis==2.0.1
-redis
+redis==7.1.0
 
 docling-core==2.57.0
 docling-parse==4.7.3
@@ -27,4 +27,7 @@ google-genai==1.60.0
 python-pptx==1.0.2
 
 prometheus-client==0.24.1
+prometheus-fastapi-instrumentator==7.0.0
 google-genai==1.60.0
+pymupdf-layout==1.26.6
+kagglehub==0.4.2

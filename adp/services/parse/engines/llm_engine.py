@@ -1,9 +1,12 @@
 import io
+
 from google import genai
 from google.genai import types
-from adp.configs.settings import settings
+
 from adp.configs.logger import worker_logger as logger
+from adp.configs.settings import settings
 from adp.services.parse.engines.prompts.pdf2markdown import PROMPT
+
 
 class LLMParseEngine:
     def __init__(self, model: str = "gemini-2.5-flash"):
@@ -12,7 +15,7 @@ class LLMParseEngine:
             self.model = model
         else:
             logger.warning("GEMINI_API_KEY is missing from environment variables!")
-        
+
     def to_markdown(self, file_obj: io.BytesIO) -> str:
         file_obj.seek(0)
         pdf_bytes = file_obj.read()
@@ -29,22 +32,22 @@ class LLMParseEngine:
                     data=pdf_bytes,
                     mime_type="application/pdf",
                 ),
-                PROMPT
+                PROMPT,
             ]
 
             logger.info(f"Sending request to Gemini model: {self.model}")
-            
+
             resp = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
-                )
+                ),
             )
 
             logger.info(f"Successfully generated markdown using {self.model}.")
             return resp.text
-            
+
         except Exception as e:
             logger.error(f"Failed to generate content via Gemini API: {str(e)}")
             raise e

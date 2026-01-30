@@ -3,7 +3,6 @@ from typing import Dict, List, Union
 from pydantic import BaseModel
 
 from .http_request_config import HttpRequestConfig
-from .local_config import LocalConfig
 from .message_queue import RabbitMQConfig as RabbitMQTargetConfig
 
 TargetConfig = Union[HttpRequestConfig, RabbitMQTargetConfig]

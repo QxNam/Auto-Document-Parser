@@ -1,7 +1,9 @@
 from pathlib import Path
-from adp.services.observer.base_observer import BaseObserver
+
 from adp.configs.logger import worker_logger as logger
 from adp.configs.settings import settings
+from adp.services.observer.base_observer import BaseObserver
+
 
 class LocalTarget(BaseObserver):
     def __init__(self):
@@ -12,7 +14,7 @@ class LocalTarget(BaseObserver):
         """
         Save data as a markdown file locally.
         """
-        clean_name = Path(file_name).with_suffix('.md')
+        clean_name = Path(file_name).with_suffix(".md")
         output_path = self.local_dir / clean_name
 
         with open(output_path, "w", encoding="utf-8") as f:

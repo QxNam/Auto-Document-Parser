@@ -1,5 +1,3 @@
-
-
 from abc import abstractmethod
 
 
@@ -15,4 +13,3 @@ class DataSourceBase:
     @abstractmethod
     def pull(self):
         raise NotImplementedError("Subclasses should implement this method.")
-    

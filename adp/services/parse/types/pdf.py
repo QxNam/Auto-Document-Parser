@@ -1,19 +1,20 @@
 import io
+from pathlib import Path
 from typing import Any, BinaryIO, Dict, Union
+
 import fitz
 from pymupdf4llm.helpers import check_ocr
-from pathlib import Path
 
-from adp.services.parse.engines.docling_engine import DoclingEngine
-from adp.services.parse.parse_registry import ParseRegistry
-from adp.services.parse.base_parse import BaseParse
-from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
-from adp.services.parse.engines.llm_engine import LLMParseEngine
 from adp.configs.logger import worker_logger as logger
+from adp.services.parse.base_parse import BaseParse
+from adp.services.parse.engines.docling_engine import DoclingEngine
+from adp.services.parse.engines.llm_engine import LLMParseEngine
+from adp.services.parse.engines.pdf_native_engine import PDFTextLayerEngine
+from adp.services.parse.parse_registry import ParseRegistry
 
 DEFAULT_DPI = 150
-MIN_OCR_PAGE_RATIO=0.3
-MIN_OCR_PAGE_COUNT=1
+MIN_OCR_PAGE_RATIO = 0.3
+MIN_OCR_PAGE_COUNT = 1
 MAX_INSPECT_PAGES = 50
 TEXT_FLAGS = (
     fitz.TEXT_COLLECT_STYLES
@@ -22,6 +23,7 @@ TEXT_FLAGS = (
     | fitz.TEXT_ACCURATE_BBOXES
     | fitz.TEXT_MEDIABOX_CLIP
 )
+
 
 @ParseRegistry.register([".pdf"])
 class PDFParse(BaseParse):
@@ -44,9 +46,7 @@ class PDFParse(BaseParse):
                     min_ocr_page_count=MIN_OCR_PAGE_COUNT,
                     dpi=DEFAULT_DPI,
                 )
-                logger.debug(
-                    f"OCR decision for PDF: {should_ocr_info.get('reason', '')}"
-                )
+                logger.debug(f"OCR decision for PDF: {should_ocr_info.get('reason', '')}")
                 should_ocr = should_ocr_info.get("should_ocr_file", False)
                 file_obj.seek(0)
 
@@ -54,17 +54,15 @@ class PDFParse(BaseParse):
                     logger.info("Using OCR engine for PDF parsing.")
                     if output_format == "markdown":
                         return self.ocr_engine.pdf_to_markdown(file_obj)
-                    
+
                 else:
                     logger.info("Using text layer engine for PDF parsing.")
                     if output_format == "markdown":
                         return self.text_layer_engine.to_markdown(file_obj)
-                
 
         except Exception as e:
             logger.error(f"Failed to parse PDF: {e}")
             raise e
-        
 
     def _open_pdf(self, source: Union[str, Path, BinaryIO]) -> fitz.Document:
         """
@@ -168,13 +166,10 @@ class PDFParse(BaseParse):
         inspected = max(inspected_pages, 1)
         ocr_ratio = len(ocr_pages) / inspected
 
-        should_ocr_file = (
-            len(ocr_pages) >= min_ocr_page_count and ocr_ratio >= min_ocr_page_ratio
-        )
+        should_ocr_file = len(ocr_pages) >= min_ocr_page_count and ocr_ratio >= min_ocr_page_ratio
 
         reason = (
-            f"{len(ocr_pages)}/{inspected} inspected pages need OCR "
-            f"({ocr_ratio:.0%})"
+            f"{len(ocr_pages)}/{inspected} inspected pages need OCR " f"({ocr_ratio:.0%})"
             if should_ocr_file
             else "Majority of pages contain readable digital text"
         )

@@ -1,5 +1,7 @@
+from typing import Any, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, Any
+
 
 class DocumentCreateRequest(BaseModel):
     s3_uri: str
@@ -8,7 +10,7 @@ class DocumentCreateRequest(BaseModel):
     content_type: Optional[str] = None
     metadata_info: Optional[dict[str, Any]] = Field(None, alias="metadata")
 
+
 class DocumentUpdateStatusRequest(BaseModel):
     document_id: str
     status: str = Field(..., pattern="^(pending|processing|completed|failed)$")
-    

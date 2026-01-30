@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple, Type, Union
 
+
 class ParseRegistry:
     _registry: Dict[str, Type] = {}
 
@@ -21,4 +22,3 @@ class ParseRegistry:
         if not parse_class:
             raise ValueError(f"No parse registered for extension '{extension}'")
         return parse_class()
-    

@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
-from uuid import UUID
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
+
 
 class DocumentResponse(BaseModel):
     id: UUID
@@ -17,4 +19,3 @@ class DocumentResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-    

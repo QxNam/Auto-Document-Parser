@@ -8,7 +8,7 @@ pdf_doc: PdfDocument = parser.load(
 )
 
 text = ""
-for page_no, pred_page in pdf_doc.iterate_pages():
+for _, pred_page in pdf_doc.iterate_pages():
     for word in pred_page.iterate_cells(unit_type=TextCellUnit.WORD):
         # print(word.rect, ": ", word.text)
         text += word.text + " "

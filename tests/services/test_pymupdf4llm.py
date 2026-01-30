@@ -1,6 +1,5 @@
 import fitz
 import pymupdf4llm
-import io
 
 from adp.services.data_source.S3 import s3_pull_service
 
@@ -12,8 +11,9 @@ def extract_with_pymupdf4llm():
 
     doc = fitz.open(stream=file_obj.read(), filetype="pdf")
     md_text = pymupdf4llm.to_markdown(doc)
-    
+
     return md_text
+
 
 if __name__ == "__main__":
     markdown_content = extract_with_pymupdf4llm()

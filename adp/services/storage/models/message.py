@@ -1,11 +1,14 @@
 from enum import Enum
+
 from pydantic import BaseModel
+
 
 class ProcessingStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
 
 class MetadataMessage(BaseModel):
     metadata_id: str
@@ -17,4 +20,3 @@ class MetadataMessage(BaseModel):
 
     def to_dict(self):
         return self.model_dump()
-    

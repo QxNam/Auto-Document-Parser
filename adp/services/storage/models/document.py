@@ -1,6 +1,8 @@
-from sqlalchemy import Column, String, BigInteger, DateTime, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import BigInteger, Column, DateTime, String, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+
 from adp.configs.database import Base
+
 
 class DocumentModel(Base):
     __tablename__ = "documents"
@@ -11,7 +13,7 @@ class DocumentModel(Base):
     file_hash = Column(String(64), unique=True, index=True)
     file_size = Column(BigInteger, nullable=False)
     content_type = Column(String(100))
-    status = Column(String(20), default='pending')
+    status = Column(String(20), default="pending")
     s3_output_uri = Column(String)
     metadata_info = Column(JSONB, name="metadata")
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))

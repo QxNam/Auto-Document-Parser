@@ -4,20 +4,24 @@ Contents:
 - [Giới thiệu](#giới-thiệu)
 - [Pipeline tổng quan](#pipeline-tổng-quan)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Authentication](#authentication)
+- [Hướng dẫn cài đặt](#hướng-dẫn-cài-đặt)
+- [API](#API)
+- [Các màn hình](#các-màn-hình)
 ---
 
 ## Giới thiệu
-Hệ thống Auto Document Parse (ADP) là một giải pháp tự động hóa quy trình trích xuất và xử lý tài liệu. Hệ thống này bao gồm nhiều dịch vụ khác nhau để nhận, xử lý, trích xuất và lưu trữ tài liệu từ các nguồn khác nhau. Mục tiêu của ADP là giảm thiểu sự can thiệp thủ công trong việc xử lý tài liệu, tăng hiệu suất và độ chính xác trong việc trích xuất thông tin quan trọng.
+Hệ thống Auto Document Parse (ADP) là một giải pháp tự động hóa quy trình trích xuất và xử lý tài liệu. Hệ thống này bao gồm nhiều dịch vụ khác nhau để nhận, xử lý, trích xuất và lưu trữ tài liệu từ các nguồn khác nhau. Mục tiêu của ADP là giảm thiểu sự can thiệp thủ công trong việc xử lý tài liệu, tăng hiệu suất và độ chính xác trong việc trích xuất thông tin quan trọng. Cung cấp dữ liệu cho các dịch vụ khác như RAG hay tìm kiếm văn bản.
 
 ## Pipeline tổng quan
 Hệ thống Auto Document Parse (ADP) được thiết kế để tự động trích xuất và xử lý tài liệu từ các nguồn khác nhau. Dưới đây là mô tả tổng quan về pipeline của hệ thống:
-1. **Nhận tài liệu**: Hệ thống nhận tài liệu từ các nguồn như email, tải lên qua giao diện web, hoặc từ các dịch vụ lưu trữ đám mây.
+1. **Nhận tài liệu**: Hệ thống nhận tài liệu từ API hoặc tải lên qua giao diện web.
 2. **Xử lý hàng đợi tin nhắn**: Tài liệu được đưa vào hàng đợi tin nhắn để quản lý và xử lý tuần tự, điều này giúp cân bằng tải cho server xử lý.
 3. **Trích xuất tài liệu**: Dịch vụ trích xuất tài liệu sử dụng các mô hình học máy và kỹ thuật xử lý ngôn ngữ tự nhiên để phân tích và trích xuất thông tin quan trọng từ tài liệu.
 4. **Lưu trữ dữ liệu**: Thông tin trích xuất được lưu trữ trong cơ sở dữ liệu hoặc hệ thống lưu trữ đám mây để dễ dàng truy cập và quản lý.
 5. **Quan sát và giám sát**: Hệ thống có các dịch vụ quan sát để theo dõi hiệu suất và trạng thái của quá trình xử lý tài liệu, đảm bảo rằng mọi thứ hoạt động trơn tru và hiệu quả.
 6. **Xử lý chính**: Một worker xử lý chính sẽ điều phối các bước trên, đảm bảo rằng tài liệu được xử lý đúng cách và kịp thời.
+7. **Giao diện người dùng**: Người dùng có thể tương tác với hệ thống thông qua giao diện web để tải lên tài liệu, xem kết quả trích xuất và quản lý tài liệu đã xử lý.
+8. **API**: Hệ thống cung cấp các endpoint API để tương tác với dịch vụ, cho phép tích hợp với các hệ thống khác hoặc tự động hóa quy trình làm việc.
 
 ![Pipeline Diagram](assets/pipeline.png)
 
@@ -47,62 +51,83 @@ Hệ thống Auto Document Parse (ADP) được thiết kế để tự động 
 ├── README.md
 ├── requirements.txt
 └── tests                       # thư mục kiểm thử
+```
 
-## Authentication
+## Hướng dẫn cài đặt
+1. Download model (cài thư viện `kagglehub`):
+```bash
+python -m adp.services.parse.download_model
+```	
+hoặc truy cập [models-docling](https://www.kaggle.com/datasets/quachnam/models-docling) để tải model về và giải nén thư mục `weights/`.
+
+Cấu trúc thư mục sau khi giải nén:
+```lua
+.
+├── weights/
+│	├── models_docling
+│	└── tessdata
+├── adp
+...
+```
+
+2. Build image
+```bash
+docker build -t adp:latest .
+```
+
+3. Chạy bằng docker compose:
+```bash
+docker compose up -d
+```
+
+
+## API
 Endpoints under the API require an API key via the `X-API-KEY` header.
 Configure the expected key by creating a `.env` file at the project root with:
 
 ```env
-SECRET_API_KEY=your-secret-key-here
+SECRET_API_KEY=abc
 ```
 
 Example request:
 
 ```bash
-curl -s http://localhost:8000/documents/ \
-	-H "X-API-KEY: your-secret-key-here"
+curl -s http://localhost:8000/api/v1/documents \
+	-H "X-API-KEY: abc"
 ```
 
-If the header is missing or the value does not match `SECRET_API_KEY`, the API responds with `403 Forbidden` and `"Could not validate credentials: Invalid API Key"`.
-```
+# Các màn hình
 
+1. Giao diện Người dùng cuối (ADP UI)
+URL: http://localhost:7860 (hoặc domain Tunnel của bạn).
+Chức năng: Đây là màn hình web.
+Tải lên hồ sơ (PDF/Ảnh).
+Hiển thị kết quả trích xuất văn bản (Markdown/JSON).
+Theo dõi trạng thái xử lý hồ sơ.
 
-# Stack Monitoring Application
-This application uses Grafana, Loki, Promtail, Prometheus, and Node Exporter to monitor logs and server performance. Grafana provides a user-friendly dashboard, Loki aggregates logs, Promtail scrapes logs, Prometheus collects metrics, and Node Exporter exposes host metrics.
+2. Giao diện Quản lý Kafka (Kafka UI)
+URL: http://localhost:8088
+Chức năng: Giám sát luồng dữ liệu giữa API và Worker.
+Kiểm tra Topic upload xem có bao nhiêu bản tin đang chờ.
+Theo dõi 2 replicas của worker_parse (Consumer Group) xem chúng có đang bị nghẽn (Lag) hay không.
+Xem nội dung bản tin (S3 URI, metadata) đang chạy qua hệ thống.
 
-## Components
-- **Grafana**: An open-source platform for monitoring and observability. It allows you to query, visualize, alert on, and understand your metrics.
-- **Loki**: A horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus.
-- **Promtail**: An agent which ships the contents of local logs to a private Loki instance or Grafana Cloud.
-- **Prometheus**: An open-source systems monitoring and alerting toolkit.
-- **Node Exporter**: A Prometheus exporter for hardware and OS metrics with pluggable metric collectors.
+3. Giao diện Tài liệu API (Swagger UI)
+URL: http://localhost:8000/docs (Đã chặn khi dùng domain, chỉ xem được tại localhost).
+Chức năng: Dành cho lập trình viên.
+Thử nghiệm các Endpoint như /api/v1/file/view.
+Kiểm tra định dạng JSON đầu ra của hệ thống Parse.
 
-## Running the Application
-First of all edit `config/prometheus/prometheus.yml` and set the right ip address and eventually the right labels.
-To run the application, use the following command: `USER_ID=$(id -u) docker compose up -d`
-This command uses Docker Compose to start the application. It sets the USER_ID environment variable to your user ID, which is obtained by running id -u.
-For the first access to your Grafana dashboard use *user=admin* and *password=admin*.
+4. Giao diện Giám sát Tổng thể (Grafana Dashboard)
+URL: http://localhost:3000
+Chức năng: Trung tâm điều hành (SOC).
+Theo dõi phần cứng: Xem mức độ tiêu thụ CPU/RAM của các worker (thông qua Node Exporter).
+Xem Log tập trung: Truy vấn log từ API và Worker (thông qua Loki & Promtail) để biết tại sao một hồ sơ bị lỗi mà không cần SSH vào container.
+Thống kê: Biểu đồ số lượng hồ sơ đã parse thành công theo thời gian.
 
+5. Giao diện Lưu trữ số liệu (Prometheus UI)
+URL: http://localhost:9090
+Chức năng: Công cụ kỹ thuật của SRE.
+Kiểm tra trạng thái "sống/chết" (Healthcheck) của các dịch vụ (Redis, Postgres, Kafka).
 
-## Checking the Status of Services
-You can check the status of the services by visiting the following URLs:
-
-- `localhost:3100/metrics`: This page shows various metrics related to the application.
-- `localhost:3100/ready`: This page indicates whether the application is ready. If it doesn't say "ready", try refreshing the page.
-- `localhost:9090`: This page shows the Prometheus dashboard where you can query your metrics.
-- `localhost:9100/metrics`: This page shows the metrics exposed by the Node Exporter.
-- `localhost:3000`: Access Grafana
-
-*Please note that these URLs assume that the application is running on your local machine. If you're running the application on a different machine, replace localhost with the IP address or hostname of that machine.*
-
-## Prometheus Configuration
-The Prometheus configuration is located in ./config/prometheus/prometheus.yml. This file tells Prometheus what services to scrape metrics from. By default, it is configured to scrape metrics from the Node Exporter.
-
-## Node Exporter
-The Node Exporter is a tool that collects information about the system including CPU, disk I/O, memory, network, and others. It exposes this information in a format that Prometheus can use.
-
-## Create a new Dashboard
-1) Create two new data sources. One for Prometheus with url `http://prometheus:9100` and the other for Loki with url `http://loki:3100`
-2) Import a new dashboard for Prometheus monitoring like the one with id **1860** or create a new one.
-3) Import a new dashboard for Loki monitoring like the one with id **13639** or create a new one
 

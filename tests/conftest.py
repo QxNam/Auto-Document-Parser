@@ -1,7 +1,9 @@
 import os
-import pytest
+
 import boto3
+import pytest
 from moto import mock_aws
+
 
 @pytest.fixture(scope="session", autouse=True)
 def aws_credentials():
@@ -12,6 +14,7 @@ def aws_credentials():
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "ap-southeast-1"
 
+
 @pytest.fixture(scope="function")
 def s3_mock():
     """
@@ -21,14 +24,12 @@ def s3_mock():
     with mock_aws():
         yield boto3.client("s3", region_name="ap-southeast-1")
 
+
 @pytest.fixture(scope="function")
 def setup_test_bucket(s3_mock):
     """
     Tạo sẵn một bucket mẫu cho các bài test cần S3.
     """
     bucket_name = "test-storage-bucket"
-    s3_mock.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={'LocationConstraint': 'ap-southeast-1'}
-    )
+    s3_mock.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"})
     return bucket_name

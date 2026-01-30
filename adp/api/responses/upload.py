@@ -21,7 +21,7 @@ class UploadResponse(BaseModel):
                 "status": "pending",
                 "time": 1700000000,
                 "file_size": 204800,
-                "file_name": "document.pdf"
+                "file_name": "document.pdf",
             }
         }
 
@@ -33,6 +33,7 @@ class DataResponse(BaseModel):
 
     content: str = Field(..., description="Extracted text or processed content from the document")
     time_processed: int = Field(..., description="Timestamp when the content was processed in epoch format")
+
 
 class ViewResponse(BaseModel):
     """
@@ -46,9 +47,6 @@ class ViewResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "status": "completed",
-                "data": {
-                    "content": "Extracted text from the document goes here...",
-                    "time_processed": 1700000500
-                }
+                "data": {"content": "Extracted text from the document goes here...", "time_processed": 1700000500},
             }
         }

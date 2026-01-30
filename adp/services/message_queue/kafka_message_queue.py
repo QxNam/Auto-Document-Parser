@@ -1,16 +1,18 @@
-import json
 import asyncio
+import json
 from typing import Any, Callable, Dict, Optional
-from kafka import KafkaProducer, KafkaConsumer
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+from kafka import KafkaConsumer, KafkaProducer
+
+from adp.configs.logger import worker_logger as logger
 from adp.configs.settings import settings
 from adp.services.message_queue.base_message_queue import BaseMessageQueueService
-from adp.configs.logger import worker_logger as logger
 
 KAFKA_BOOTSTRAP_SERVERS = settings.KAFKA_BOOTSTRAP_SERVERS
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 KAFKA_CONSUMER_GROUP_ID = settings.KAFKA_CONSUMER_GROUP_ID
+
 
 class KafkaService(BaseMessageQueueService):
     _instance = None
@@ -24,7 +26,7 @@ class KafkaService(BaseMessageQueueService):
     def __init__(self, bootstrap_servers: str = "kafka:9092"):
         if self._initialized:
             return
-        
+
         self.bootstrap_servers = bootstrap_servers
         self._sync_producer: Optional[KafkaProducer] = None
         self._async_producer: Optional[AIOKafkaProducer] = None
@@ -45,7 +47,7 @@ class KafkaService(BaseMessageQueueService):
             cls._instance.close()
             cls._instance = None
             logger.info("--- Closed Kafka Producer ---")
-    
+
     # --- Producer Helpers (Lazy Loading) ---
 
     def _get_sync_producer(self) -> KafkaProducer:
@@ -54,11 +56,11 @@ class KafkaService(BaseMessageQueueService):
             logger.debug("Creating Sync Kafka Producer...")
             self._sync_producer = KafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
-                value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
                 retries=5,
-                acks='all',
+                acks="all",
                 max_in_flight_requests_per_connection=1,
-                request_timeout_ms=10000
+                request_timeout_ms=10000,
             )
         return self._sync_producer
 
@@ -68,9 +70,9 @@ class KafkaService(BaseMessageQueueService):
             logger.debug("Creating Async Kafka Producer...")
             self._async_producer = AIOKafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
-                value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                request_timeout_ms=10000, 
-                retry_backoff_ms=100
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                request_timeout_ms=10000,
+                retry_backoff_ms=100,
             )
             await self._async_producer.start()
         return self._async_producer
@@ -84,8 +86,10 @@ class KafkaService(BaseMessageQueueService):
             producer = self._get_sync_producer()
             future = producer.send(topic, value=message)
             record_metadata = future.get(timeout=10)
-            
-            logger.info(f"✅ Sync Publish Success: topic={record_metadata.topic}, partition={record_metadata.partition}")
+
+            logger.info(
+                f"✅ Sync Publish Success: topic={record_metadata.topic}, partition={record_metadata.partition}"
+            )
             return True
         except Exception as e:
             logger.error(f"❌ Sync Publish Failed to topic {topic}: {str(e)}", exc_info=True)
@@ -110,9 +114,9 @@ class KafkaService(BaseMessageQueueService):
             topic,
             bootstrap_servers=self.bootstrap_servers,
             group_id=group_id,
-            value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-            auto_offset_reset='earliest',
-            enable_auto_commit=True
+            value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+            auto_offset_reset="earliest",
+            enable_auto_commit=True,
         )
         try:
             for msg in consumer:
@@ -132,9 +136,9 @@ class KafkaService(BaseMessageQueueService):
             topic,
             bootstrap_servers=self.bootstrap_servers,
             group_id=group_id,
-            value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-            auto_offset_reset='earliest',
-            enable_auto_commit=True
+            value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+            auto_offset_reset="earliest",
+            enable_auto_commit=True,
         )
         await consumer.start()
         try:
@@ -157,5 +161,6 @@ class KafkaService(BaseMessageQueueService):
         if self._async_producer:
             await self._async_producer.stop()
         logger.info("Kafka Service connections fully closed.")
+
 
 kafka_service = KafkaService(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
