@@ -1,4 +1,5 @@
 import os
+
 from adp.services.storage.s3 import s3_service
 
 bucket_name, object_key = s3_service.parse_s3_uri("s3://pbl-bulk/upload/20260121_044729_abc.jpg")

@@ -1,10 +1,12 @@
 import json
+
 import redis.asyncio as redis
+
+from adp.configs.logger import api_logger, worker_logger
 from adp.configs.settings import settings
-from adp.configs.logger import worker_logger
-from adp.configs.logger import api_logger
 
 REDIS_URL = settings.REDIS_URL or "redis://localhost:6379/0"
+
 
 class RedisClient:
     _instance = None
@@ -20,11 +22,7 @@ class RedisClient:
         if self._redis is None:
             try:
                 self._redis = redis.from_url(
-                    REDIS_URL,
-                    encoding="utf-8",
-                    decode_responses=True,
-                    socket_timeout=5,
-                    retry_on_timeout=True
+                    REDIS_URL, encoding="utf-8", decode_responses=True, socket_timeout=5, retry_on_timeout=True
                 )
                 worker_logger.info("✅ Successfully connected to Redis.")
                 api_logger.info("✅ Successfully connected to Redis.")
@@ -49,7 +47,7 @@ class RedisClient:
     def pubsub(self):
         """Return a pubsub object for the API to listen on."""
         return self._redis.pubsub()
-    
+
     async def flush_all(self):
         """Remove all keys from all databases."""
         if self._redis:

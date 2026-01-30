@@ -1,10 +1,11 @@
+from pathlib import Path
 from time import time
 
-from pathlib import Path
+from adp.configs.logger import worker_logger as logger
 from adp.configs.settings import settings
 from adp.services.observer.base_observer import BaseObserver
 from adp.services.storage.redis_cache import redis_client
-from adp.configs.logger import worker_logger as logger
+
 
 class CacheTarget(BaseObserver):
     def __init__(self):
@@ -17,7 +18,7 @@ class CacheTarget(BaseObserver):
         """
         task_id = kwargs.get("task_id")
         file_hash = kwargs.get("file_hash")
-        clean_name = Path(file_name).with_suffix('.md')
+        clean_name = Path(file_name).with_suffix(".md")
         output_path = self.local_dir / clean_name
 
         if not task_id:
@@ -31,7 +32,7 @@ class CacheTarget(BaseObserver):
                 "file_name": file_name,
                 "content": data,
                 "local_path": str(output_path),
-                "time_completed": int(time())
+                "time_completed": int(time()),
             }
 
             # 1. Publish Signal (Cho API đang treo)

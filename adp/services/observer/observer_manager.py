@@ -1,8 +1,10 @@
 # adp/services/observer/observer_manager.py
 import asyncio
+
 from adp.configs.logger import worker_logger as logger
 from adp.configs.settings import settings
 from adp.services.observer.observer_factory import ObserverFactory
+
 
 class ObserverManager:
     _instance = None
@@ -36,24 +38,24 @@ class ObserverManager:
             return {}
 
         tasks = [observer.update(data, file_name, *args, **kwargs) for observer in self.observers]
-        
+
         # return_exceptions=True helps ensure one target's failure doesn't crash the whole system
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         final_results = {}
         for idx, result in enumerate(results):
             target_name = self.observers[idx].__class__.__name__.lower().replace("target", "")
-            
+
             if isinstance(result, Exception):
                 logger.error(f"[Observer] {target_name} failed: {result}")
                 final_results[target_name] = None
             else:
                 final_results[target_name] = result
-                
+
         return final_results
-    
+
     async def close_all(self):
         # Giả sử các target có hàm close()
-        tasks = [t.close() for t in self.observers if hasattr(t, 'close')]
+        tasks = [t.close() for t in self.observers if hasattr(t, "close")]
         if tasks:
             await asyncio.gather(*tasks)

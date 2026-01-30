@@ -2,23 +2,23 @@ import asyncio
 import os
 from time import time
 
-from anyio import Path
-
+from adp.configs.database import SessionLocal
+from adp.configs.logger import worker_logger as logger
+from adp.configs.settings import settings
 from adp.services.data_source.S3 import S3DataSource
 from adp.services.message_queue.kafka_message_queue import kafka_service
 from adp.services.observer.observer_manager import ObserverManager
+from adp.services.parse.parse import Parse
 from adp.services.storage.models.message import MetadataMessage, ProcessingStatus
 from adp.services.storage.pg import PGService
 from adp.services.storage.redis_cache import redis_client
-from adp.services.parse.parse import Parse
 from adp.utils.validator import check as validate_file
-from adp.configs.settings import settings
-from adp.configs.database import SessionLocal
-from adp.configs.logger import worker_logger as logger
 
 KAFKA_TOPIC_NAME = settings.KAFKA_TOPIC_NAME
 KAFKA_CONSUMER_GROUP_ID = settings.KAFKA_CONSUMER_GROUP_ID
 os.makedirs("/tmp/saved", exist_ok=True)
+
+
 class ParseWorker:
     def __init__(self):
         self.kafka_service = kafka_service
@@ -39,7 +39,7 @@ class ParseWorker:
 
         db = SessionLocal()
         await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.PROCESSING)
-        
+
         try:
             validate_file_result = validate_file(file_obj=file_obj, file_name=message.file_name)
             if not validate_file_result:
@@ -48,16 +48,14 @@ class ParseWorker:
                 return
 
             result = self.parse.parse(file_obj=file_obj, file_name=message.file_name)
-            
+
             # Observer
             doc = await PGService.get_by_id(db, message.metadata_id)
-            results = await self.observer_manager.send(data=result, file_name=message.file_name, task_id=message.metadata_id, file_hash=doc.file_hash)
-            await PGService.update_output_uri(
-                db=db,
-                document_id=message.metadata_id,
-                s3_output_uri=results.get("s3")
+            results = await self.observer_manager.send(
+                data=result, file_name=message.file_name, task_id=message.metadata_id, file_hash=doc.file_hash
             )
-            
+            await PGService.update_output_uri(db=db, document_id=message.metadata_id, s3_output_uri=results.get("s3"))
+
             await PGService.update_status(db, message.metadata_id, status=ProcessingStatus.COMPLETED)
             logger.info(f"✅ Finished at {time()}")
 
@@ -81,6 +79,7 @@ class ParseWorker:
             )
         finally:
             await redis_client.close()
+
 
 if __name__ == "__main__":
     worker = ParseWorker()

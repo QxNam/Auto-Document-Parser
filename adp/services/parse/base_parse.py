@@ -9,11 +9,8 @@ class BaseParse(ABC):
     """
 
     @abstractmethod
-    def parse(
-        self, file: Union[str, Path, BinaryIO], file_name: str
-    ) -> Tuple[str, str, int]:
+    def parse(self, file: Union[str, Path, BinaryIO], file_name: str) -> Tuple[str, str, int]:
         """
         Convert the document at the given file path into text representation.
         """
         pass
-

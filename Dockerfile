@@ -16,7 +16,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        # Các thư viện hệ thống cần thiết cho Docling (thay thế cho libgl1-mesa-glx)
+        # dependency for docling
         libgl1 \
         libglx0 \
         libxcb1 \
@@ -26,11 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         tesseract-ocr-vie \
         tesseract-ocr-eng \
-        # Xử lý PDF và hình ảnh
+        # pdf/image process
         poppler-utils \
         libpng16-16 \
         libxslt1.1 && \
-    # Dọn dẹp triệt để để giảm dung lượng image
+    # free image
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* \
@@ -38,9 +38,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
            /var/tmp/* \
            /usr/share/doc/* \
            /usr/share/man/*
-
-
-RUN pip install pymupdf-layout
 
 COPY ./adp ./adp
 COPY ./tests ./tests

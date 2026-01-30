@@ -1,9 +1,11 @@
 import io
-from adp.services.parse.engines.llm_engine import LLMParseEngine
-from adp.services.parse.parse_registry import ParseRegistry
+
+from adp.configs.logger import worker_logger as logger
 from adp.services.parse.base_parse import BaseParse
 from adp.services.parse.engines.docling_engine import DoclingEngine
-from adp.configs.logger import worker_logger as logger
+from adp.services.parse.engines.llm_engine import LLMParseEngine
+from adp.services.parse.parse_registry import ParseRegistry
+
 
 @ParseRegistry.register([".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff"])
 class ImageParse(BaseParse):
@@ -25,8 +27,8 @@ class ImageParse(BaseParse):
         Parse an Image file.
         Args:
             file_obj (io.BytesIO): The Image file object to be parsed.
-            engine (str, optional): The parsing engine to use. Defaults to "auto". Options are "auto", "text_layer", "ocr".
-            output_format (str, optional): The desired output format. Defaults to "markdown". Options are "markdown", "plain_text".
+            engine (str, optional): The parsing engine to use. Options are "auto", "text_layer", "ocr".
+            output_format (str, optional): The desired output format. Options are "markdown", "plain_text".
         """
 
         try:

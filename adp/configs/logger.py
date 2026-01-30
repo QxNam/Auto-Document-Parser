@@ -1,4 +1,5 @@
 import sys
+
 from loguru import logger
 
 FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{line} | {message}"
@@ -13,7 +14,7 @@ logger.add(
     level="INFO",
     rotation="50 MB",
     retention="30 days",
-    enqueue=True
+    enqueue=True,
 )
 
 logger.add(
@@ -22,16 +23,10 @@ logger.add(
     level="INFO",
     rotation="50 MB",
     retention="30 days",
-    enqueue=True
+    enqueue=True,
 )
 
-logger.add(
-    "./logs/errors.log",
-    level="ERROR",
-    rotation="100 MB",
-    retention="60 days",
-    enqueue=True
-)
+logger.add("./logs/errors.log", level="ERROR", rotation="100 MB", retention="60 days", enqueue=True)
 
 
 api_logger = logger.bind(layer="API")
