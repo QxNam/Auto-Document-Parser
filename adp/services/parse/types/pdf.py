@@ -169,7 +169,7 @@ class PDFParse(BaseParse):
         should_ocr_file = len(ocr_pages) >= min_ocr_page_count and ocr_ratio >= min_ocr_page_ratio
 
         reason = (
-            f"{len(ocr_pages)}/{inspected} inspected pages need OCR " f"({ocr_ratio:.0%})"
+            f"{len(ocr_pages)}/{inspected} inspected pages need OCR ({ocr_ratio:.0%})"
             if should_ocr_file
             else "Majority of pages contain readable digital text"
         )
