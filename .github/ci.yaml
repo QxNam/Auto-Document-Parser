@@ -1,8 +1,0 @@
-# setup fist ci: pep8 checking:
-# - step 1: install dependencies
-# - step 2: run pep8 check: ruff check .
-
-name: pep8-check
-
-
-

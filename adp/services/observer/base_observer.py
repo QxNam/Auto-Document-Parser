@@ -1,9 +1,11 @@
+from abc import ABC, abstractmethod
 
 
-class BaseObserver:
-    def __init__(self,):
+class BaseObserver(ABC):
+    @abstractmethod
+    def update(self, data):
         pass
 
-    async def push(self,):
-        """Push data to destination."""
+    @abstractmethod
+    async def close(self):
         pass

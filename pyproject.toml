@@ -1,12 +1,12 @@
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py312"
 exclude = ["build", "dist", ".venv", "__pycache__", "versions"]
 preview = true
  
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
-ignore = ["E203"]
+ignore = ["E203", "B008"]
 extend-select = ["I"]
  
 [tool.ruff.lint.per-file-ignores]
@@ -15,7 +15,7 @@ extend-select = ["I"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-docstring-code-format = true
+# docstring-code-format = true
  
 [tool.isort]
 profile = "black"

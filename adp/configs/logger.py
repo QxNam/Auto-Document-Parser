@@ -1,29 +1,34 @@
+import sys
+
 from loguru import logger
 
-LOGGER_NAME_DEFAULT = "dpe_logger".upper()
-FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} |{file}:{line} | {message}"
+FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{line} | {message}"
+
+logger.remove()
+
+logger.add(sys.stdout, format=FILE_FORMAT, level="DEBUG")
+
 logger.add(
-    "./logs/all_logs.log",
-    level="DEBUG",
-    format=FILE_FORMAT,
+    "./logs/api.log",
+    filter=lambda record: record["extra"].get("layer") == "API",
+    level="INFO",
     rotation="50 MB",
     retention="30 days",
-    compression="zip",
     enqueue=True,
-    encoding="utf-8",
 )
 
 logger.add(
-    "./logs/errors.log",
-    level="ERROR",
-    format=FILE_FORMAT,
+    "./logs/worker.log",
+    filter=lambda record: record["extra"].get("layer") == "WORKER",
+    level="INFO",
     rotation="50 MB",
     retention="30 days",
-    compression="zip",
     enqueue=True,
-    encoding="utf-8",
 )
 
+logger.add("./logs/errors.log", level="ERROR", rotation="100 MB", retention="60 days", enqueue=True)
 
-def get_logger(name: str = LOGGER_NAME_DEFAULT):
-    return logger.bind(name=name)
+
+api_logger = logger.bind(layer="API")
+worker_logger = logger.bind(layer="WORKER")
+default_logger = logger.bind(layer="SYSTEM")
